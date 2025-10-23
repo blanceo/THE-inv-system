@@ -255,4 +255,82 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+// ====== ADD NEW ITEM FEATURE ======
+document.addEventListener('DOMContentLoaded', () => {
+  const addItemBtn = document.getElementById('addItemBtn');
+  const inventoryBody = document.getElementById('inventoryBody');
+
+  if (!addItemBtn || !inventoryBody) return;
+
+  addItemBtn.addEventListener('click', () => {
+    // Create a new blank row
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+      <td contenteditable="true" class="editable">New Item</td>
+      <td contenteditable="true" class="editable">Select Room</td>
+      <td contenteditable="true" class="editable">Enter Description</td>
+      <td contenteditable="true" class="editable" data-type="number">0</td>
+      <td contenteditable="true" class="editable">0</td>
+      <td contenteditable="true" class="editable" data-type="number">0</td>
+      <td contenteditable="true" class="editable" data-type="number">0</td>
+      <td contenteditable="true" class="editable">Remarks</td>
+    `;
+
+    // Style highlight for new row
+    newRow.style.backgroundColor = "rgba(255, 214, 0, 0.1)";
+    newRow.style.transition = "background-color 0.3s ease";
+
+    inventoryBody.prepend(newRow); // Add to top of table
+  });
+});
+// ====== RESERVATION FEATURE ======
+document.addEventListener('DOMContentLoaded', () => {
+  const reserveItem = document.getElementById('reserveItem');
+  const reserveDate = document.getElementById('reserveDate');
+  const reserveBtn = document.getElementById('reserveBtn');
+  const reservedList = document.getElementById('reservedList');
+  const popup = document.getElementById('reservePopup');
+
+  if (!reserveItem || !reserveBtn) return;
+
+  // Enable/disable button based on input
+  reserveItem.addEventListener('input', () => {
+    reserveBtn.disabled = reserveItem.value.trim() === '';
+  });
+
+  // Handle reservation submission
+  reserveBtn.addEventListener('click', () => {
+    const itemName = reserveItem.value.trim();
+    const dateNeeded = reserveDate.value || "No date specified";
+
+    if (itemName === '') return;
+
+    // Add item to reserved list
+    const li = document.createElement('li');
+    li.textContent = `${itemName} — ${dateNeeded}`;
+    reservedList.appendChild(li);
+
+popup.textContent = `${itemName} has been reserved`;
+
+// Reset state first (if it was hiding)
+popup.classList.remove('hide');
+popup.style.display = 'block';
+
+// Fade in
+setTimeout(() => popup.classList.add('show'), 10);
+
+// Fade out after 2 seconds
+setTimeout(() => {
+  popup.classList.remove('show');
+  popup.classList.add('hide');
+  setTimeout(() => (popup.style.display = 'none'), 400); // matches fade duration
+}, 2000);
+
+
+    // Reset form
+    reserveItem.value = '';
+    reserveDate.value = '';
+    reserveBtn.disabled = true;
+  });
+});
 

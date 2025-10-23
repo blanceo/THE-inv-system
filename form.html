@@ -31,6 +31,8 @@
 </div>
 
     <button onclick="sortTable()">Sort A–Z</button>
+    <button id="addItemBtn" type="button">+ Add New Item</button>
+
  <table id="inventoryTable">
   <thead>
   <tr>
@@ -53,17 +55,28 @@
   </section>
 
   <!-- Reservation Section -->
-  <section id="reservations">
-    <h2>Reserve Equipment</h2>
-    <p>Select items to reserve for lab activities.</p>
-    <form>
-      <label>Item:</label>
-      <input type="text" placeholder="Enter equipment name"><br><br>
-      <label>Date Needed:</label>
-      <input type="date"><br><br>
-      <button type="button">Submit Reservation</button>
-    </form>
-  </section>
+<section id="reservations">
+  <h2>Reserve Equipment</h2>
+  <p>Select items to reserve for lab activities.</p>
+
+  <form id="reservationForm">
+    <label>Item:</label>
+    <input type="text" id="reserveItem" placeholder="Enter equipment name"><br><br>
+    <label>Date Needed:</label>
+    <input type="date" id="reserveDate"><br><br>
+    <button id="reserveBtn" type="button" disabled>Submit Reservation</button>
+  </form>
+
+  <!-- Popup Message -->
+  <div id="reservePopup" class="popup"></div>
+
+  <!-- List of Reserved Items -->
+  <div id="reservedListContainer">
+    <h3>Reserved Items</h3>
+    <ul id="reservedList"></ul>
+  </div>
+</section>
+
 
   <!-- History Section -->
 <section id="history">

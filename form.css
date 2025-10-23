@@ -87,6 +87,24 @@ table {
   border-radius: 6px;
   overflow: hidden;
 }
+/* ====== ADD ITEM BUTTON ====== */
+#addItemBtn {
+  background: #FFD600;
+  color: #7a0000;
+  border: 2px solid #FFD600;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-weight: bold;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#addItemBtn:hover {
+  background: #7a0000;
+  color: #FFD600;
+  box-shadow: 0 0 10px rgba(255, 214, 0, 0.6);
+}
 
 th, td { 
   border: 1px solid #ddd; 
@@ -196,6 +214,70 @@ input.inline-input:focus {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+/* ====== POPUP FADE ANIMATION ====== */
+.popup {
+  display: none;
+  position: fixed;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #530a02;
+  color: #fac517;
+  padding: 50px 80px;
+  border-radius: 15px;
+  font-weight: 800;
+  font-size: 2rem;
+  text-align: center;
+  max-width: 600px;
+  box-shadow: 0 0 40px rgba(255, 214, 0, 0.7);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out; /* smooth fade */
+}
+
+/* When visible */
+.popup.show {
+  display: block;
+  opacity: 1; /* fade in */
+}
+
+/* When hiding */
+.popup.hide {
+  opacity: 0; /* fade out */
+}
+
+
+
+/* ====== RESERVED LIST ====== */
+#reservedListContainer {
+  margin-top: 25px;
+  background: linear-gradient(to right, #7a0000, #ff7c1e);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #ffd6004d;
+  box-shadow: 0 4px 10px rgba(255, 214, 0, 0.1);
+}
+
+#reservedListContainer h3 {
+  color: #ffffff;
+  font-size: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+#reservedList {
+  list-style: none;
+  padding-left: 0;
+}
+
+#reservedList li {
+  background: rgba(255, 214, 0, 0.1);
+  color: #ffffff;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 214, 0, 0.3);
 }
 
 
