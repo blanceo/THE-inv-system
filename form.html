@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LabTrack - Inventory System</title>
+  <link rel="stylesheet" href="form.css">
+</head>
+<body>
+
+<header>
+  <h1>LabTrack - SHS Laboratory Inventory</h1>
+</header>
+
+<!-- Main App -->
+<div id="app">
+  <nav>
+    <button onclick="showSection('inventory')">Inventory</button>
+    <button onclick="showSection('reservations')">Reservations</button>
+    <button onclick="showSection('history')">History</button>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <!-- Inventory Section -->
+  <section id="inventory" class="active">
+    <h2>Inventory</h2>
+    <div class="search-bar">
+  <label>Room:
+    <select id="roomFilter"><option value="">All</option></select>
+  </label>
+  <input type="text" id="searchInput" placeholder="Search equipment..." onkeyup="searchTable()">
+</div>
+
+    <button onclick="sortTable()">Sort A–Z</button>
+ <table id="inventoryTable">
+  <thead>
+  <tr>
+    <th>Item</th>
+    <th>Room</th>
+    <th>Description</th>
+    <th>Quantity (Beg)</th>
+    <th>Acquisition/Transfer</th>
+    <th>Ending</th>
+    <th>Pull-out</th>
+    <th>Remarks</th>
+  </tr>
+</thead>
+<tbody id="inventoryBody">
+  <!-- rows will be injected by JS -->
+</tbody>
+
+</table>
+
+  </section>
+
+  <!-- Reservation Section -->
+  <section id="reservations">
+    <h2>Reserve Equipment</h2>
+    <p>Select items to reserve for lab activities.</p>
+    <form>
+      <label>Item:</label>
+      <input type="text" placeholder="Enter equipment name"><br><br>
+      <label>Date Needed:</label>
+      <input type="date"><br><br>
+      <button type="button">Submit Reservation</button>
+    </form>
+  </section>
+
+  <!-- History Section -->
+<section id="history">
+  <h2>Usage History</h2>
+  <table id="historyTable">
+    <thead>
+      <tr><th>Date</th><th>User</th><th>Item</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>2025-08-18</td><td>Mr. Santos</td><td>Microscope</td><td class="action-cell">Borrowed</td></tr>
+      <tr><td>2025-08-19</td><td>Ms. Cruz</td><td>Beaker 250 mL</td><td class="action-cell">Returned</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</div>
+
+<script>
+  // keep your navigation & logout functions here
+  function logout() {
+    window.location.href = "hp1.html";
+  }
+
+  function showSection(sectionId) {
+    document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+    document.getElementById(sectionId).classList.add("active");
+  }
+</script>
+
+<!-- link to the new file that handles inventory display -->
+<script src="form-inventory.js"></script>
+
+
+</body>
+</html>

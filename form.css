@@ -1,0 +1,202 @@
+/* ====== GLOBAL ====== */
+body { 
+  font-family: Arial, sans-serif; 
+  margin: 0; 
+  background: #ffe8df; 
+}
+
+/* ====== HEADER ====== */
+header { 
+  background: linear-gradient(to right, #7a0000, #ff7c1e);
+  color: white; 
+  padding: 20px 15px; 
+  text-align: center; 
+  font-size: 1.8rem;
+  font-weight: bold;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+}
+
+/* ====== NAVIGATION BAR ====== */
+nav { 
+  background: #ffe8df; /* subtle contrast to the header */
+  padding: 12px; 
+  display: flex; 
+  justify-content: center; 
+  gap: 30px;
+}
+
+/* ====== NAV BUTTONS ====== */
+nav button { 
+  padding: 20px 25px; 
+  border: none; 
+  border-radius: 20px; 
+  background: linear-gradient(to right, #7a0000, #9c1a00);
+  color: white; 
+  cursor: pointer; 
+  font-size: 1rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Hover & Active State */
+nav button:hover { 
+  background: linear-gradient(to right, #ff7c1e, #ffb15a);
+  color: #fff; 
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+nav button:active {
+  transform: translateY(1px);
+}
+
+/* ====== SECTIONS ====== */
+section { 
+  padding: 20px; 
+  display: none; 
+  background: #ffffff;
+  border-radius: 12px;
+  margin: 25px auto;
+  width: 90%;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+section.active { 
+  display: block; 
+}
+
+/* ====== SEARCH BAR ====== */
+.search-bar { 
+  margin-bottom: 15px; 
+}
+
+input[type="text"], input[type="password"], input[type="date"] { 
+  width: 50%; 
+  padding: 8px; 
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* ====== TABLE ====== */
+table { 
+  border-collapse: collapse; 
+  width: 100%; 
+  margin-top: 10px; 
+  background: white; 
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+th, td { 
+  border: 1px solid #ddd; 
+  padding: 8px; 
+  text-align: left; 
+}
+
+th { 
+  background: linear-gradient(to right, #7a0000, #a30000); 
+  color: white; 
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ====== LOGIN BOX (if used) ====== */
+.login-container { 
+  width: 300px; 
+  margin: 100px auto; 
+  background: white; 
+  padding: 20px; 
+  border-radius: 10px; 
+  box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+}
+
+/* ====== UTILITY ====== */
+.hidden { 
+  display: none; 
+}
+
+/* ====== HISTORY ACTION DROPDOWN ====== */
+.action-cell {
+  cursor: pointer;
+  color: #7a0000;
+  font-weight: bold;
+  transition: background 0.3s ease, color 0.3s ease;
+  position: relative;
+}
+
+.action-cell:hover {
+  background: rgba(255, 124, 30, 0.15);
+  color: #ff7c1e;
+}
+
+/* Dropdown menu */
+.action-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: none;
+  min-width: 120px;
+}
+
+.action-menu.show {
+  display: block;
+}
+
+.action-menu div {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.action-menu div:hover {
+  background: linear-gradient(to right, #7a0000, #ff7c1e);
+  color: white;
+}
+/*inline editing*/
+.editing {
+  background: #fff3e0 !important;
+  outline: 2px solid #ff7c1e;
+}
+
+.editable:hover {
+  background: rgba(255, 124, 30, 0.1);
+  cursor: pointer;
+}
+
+input.inline-input {
+  width: 100%;
+  border: none;
+  background: #fff7ef;
+  padding: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #333;
+}
+
+input.inline-input:focus {
+  outline: 2px solid #ff7c1e;
+  background: white;
+}
+
+/* column width*/
+#historyTable th:nth-child(4),
+#historyTable td:nth-child(4) {
+  width: 130px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#historyTable td:nth-child(4) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+

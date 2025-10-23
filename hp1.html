@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LabTrack</title>
+  <link rel="stylesheet" href="hpstyle.css">
+</head>
+<body>
+
+  <!-- Decorative background overlay -->
+  <div class="background-overlay"></div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab active" data-target="home">Home</div>
+    <div class="tab" data-target="about">About Us</div>
+    <div class="tab" data-target="schedule">Schedule</div>
+    <div class="tab" data-target="reports">Reports</div>
+  </div>
+
+  <!-- Content Sections -->
+  <div class="content">
+    <div id="home" class="content-section active">
+      <h1>LabTrack</h1>
+      <div class="home-row">
+        <p>
+          A minimal, web-based inventory management system designed for the senior high school laboratory. 
+          Elegant, fast, and easy to use.
+        </p>
+        <div class="login-container">
+          <a href="LOGIN.html" class="login-btn">Login</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="about" class="content-section">
+      <div class="about-container">
+        <div class="about-text">
+          <h1>The Researchers</h1>
+          <p>
+            We are a group of STEM InfoTech students from Pasig Catholic College, and this project, <b><i>LabTrack</i></b>, 
+            was developed as part of our Practical Research 2 course.
+          </p>
+          <p>
+            LabTrack is a <i>web-based inventory management system prototype</i> designed to assist Senior High School 
+            science teachers in monitoring and managing laboratory equipment.
+          </p>
+        </div>
+        <div class="about-image">
+          <img src="groupie.jpg" alt="Researchers">
+        </div>
+      </div>
+    </div>
+
+    <div id="schedule" class="content-section">
+      <div class="about-container">
+        <div class="about-text">
+          <h1>Schedule</h1>
+          <p>
+            LabTrack also features a scheduling function that allows teachers to reserve 
+            laboratory equipment and monitor availability.
+          </p>
+        </div>
+        <div class="about-image">
+          <img src="sched.jpg" alt="Schedule">
+        </div>
+      </div>
+    </div>
+
+    <div id="reports" class="content-section">
+      <div class="about-container">
+        <div class="about-text">
+          <h1>Reports</h1>
+          <p>
+            The reporting feature of LabTrack enables teachers and administrators 
+            to generate summaries of laboratory usage and inventory status.
+          </p>
+        </div>
+        <div class="about-image">
+          <img src="reports.jpg" alt="Reports">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const sections = document.querySelectorAll('.content-section');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.target).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
