@@ -1,47 +1,52 @@
-// form-inventory.js
-// Place this file in the same folder as form.html and shs_lab_inventory_clean.json
-
-let allData = [];           // full dataset loaded from JSON
-let currentSortAsc = true;  // toggles sort order
+// form-inventory.js with pagination
+let allData = [];
+let currentSortAsc = true;
+let currentPage = 1;
+let pageSize = 10;
+let filteredData = [];
 
 const roomFilter = document.getElementById('roomFilter');
 const searchInput = document.getElementById('searchInput');
 const inventoryBody = document.getElementById('inventoryBody');
 
-// safe helper to get a prop regardless of capitalization
+// Pagination elements
+const paginationInfo = document.getElementById('paginationInfo');
+const pageNumbers = document.getElementById('pageNumbers');
+const firstPageBtn = document.getElementById('firstPage');
+const prevPageBtn = document.getElementById('prevPage');
+const nextPageBtn = document.getElementById('nextPage');
+const lastPageBtn = document.getElementById('lastPage');
+const pageSizeSelect = document.getElementById('pageSize');
+
 function getProp(obj, name) {
   if (!obj) return '';
   if (name in obj) return obj[name];
-  // fallback to case-insensitive match
   const key = Object.keys(obj).find(k => k.toLowerCase() === name.toLowerCase());
   return key ? obj[key] : '';
 }
 
 function loadJSON() {
-  fetch('Lab_inventory_masterlist.json')
-    .then(r => {
-      if (!r.ok) throw new Error('JSON file not found on server');
-      return r.json();
-    })
-    .then(json => {
-      if (!Array.isArray(json)) {
-        console.error('Expected JSON array');
-        allData = [];
-      } else {
-        allData = json;
+  fetch('./api/get_inventory.php')
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("Failed to fetch data from server.");
       }
+      return res.json();
+    })
+    .then(data => {
+      allData = Array.isArray(data) ? data : [];
       populateRoomFilter();
+      filterAndSortData();
       renderTable();
+      setupPagination();
     })
     .catch(err => {
-      console.error('Error loading JSON:', err);
-      // If fetch fails (local file), leave table empty — user should use local server
+      console.error("Error:", err);
     });
 }
 
 function populateRoomFilter() {
   const rooms = [...new Set(allData.map(row => (getProp(row, 'Room') || '').toString().trim()).filter(Boolean))];
-  // clear existing options but keep "All"
   roomFilter.innerHTML = '<option value="">All</option>';
   rooms.forEach(r => {
     const opt = document.createElement('option');
@@ -51,24 +56,17 @@ function populateRoomFilter() {
   });
 }
 
-// Convert numbers that are strings to display consistently
-function formatCell(v) {
-  if (v === null || v === undefined) return '';
-  return String(v);
-}
-
-// Render filtered table
-function renderTable() {
+function filterAndSortData() {
   const roomVal = roomFilter.value;
   const q = (searchInput.value || '').toLowerCase().trim();
 
-  let filtered = allData.filter(row => {
+  filteredData = allData.filter(row => {
     // Room match (if selected)
     if (roomVal) {
       const r = getProp(row, 'Room') || '';
       if (r.toString() !== roomVal) return false;
     }
-    // search match across visible fields (item, description, remarks)
+    // search match
     if (q) {
       const text = [
         getProp(row, 'Item'),
@@ -82,20 +80,36 @@ function renderTable() {
     return true;
   });
 
-  // Sort by Item column respecting currentSortAsc
-  filtered.sort((a, b) => {
+  // Sort by Item column
+  filteredData.sort((a, b) => {
     const A = (getProp(a, 'Item') || '').toString().toLowerCase();
     const B = (getProp(b, 'Item') || '').toString().toLowerCase();
     return currentSortAsc ? A.localeCompare(B) : B.localeCompare(A);
   });
 
-  // Build HTML
-  if (!filtered.length) {
+  // Reset to first page when filtering
+  currentPage = 1;
+}
+
+function formatCell(v) {
+  if (v === null || v === undefined) return '';
+  return String(v);
+}
+
+function renderTable() {
+  if (!filteredData.length) {
     inventoryBody.innerHTML = '<tr><td colspan="8">No records found.</td></tr>';
+    updatePaginationInfo();
     return;
   }
 
-  const rowsHtml = filtered.map(row => {
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredData.length);
+  const pageData = filteredData.slice(startIndex, endIndex);
+
+  const rowsHtml = pageData.map(row => {
     const item = formatCell(getProp(row, 'Item'));
     const room = formatCell(getProp(row, 'Room'));
     const desc = formatCell(getProp(row, 'Description'));
@@ -104,7 +118,8 @@ function renderTable() {
     const ending = formatCell(getProp(row, 'Ending'));
     const pull = formatCell(getProp(row, 'PullOut') || getProp(row, 'Pull-out') || '');
     const remarks = formatCell(getProp(row, 'Remarks'));
-    return `<tr>
+    return `
+    <tr data-id="${row.id}">
       <td>${escapeHtml(item)}</td>
       <td>${escapeHtml(room)}</td>
       <td>${escapeHtml(desc)}</td>
@@ -117,9 +132,81 @@ function renderTable() {
   }).join('\n');
 
   inventoryBody.innerHTML = rowsHtml;
+  updatePaginationInfo();
+  updatePaginationButtons(totalPages);
 }
 
-// simple HTML escape
+function updatePaginationInfo() {
+  if (!filteredData.length) {
+    paginationInfo.textContent = 'No records found';
+    return;
+  }
+
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(currentPage * pageSize, totalItems);
+
+  paginationInfo.textContent = `Showing ${startIndex}-${endIndex} of ${totalItems} items (Page ${currentPage} of ${totalPages})`;
+}
+
+function updatePaginationButtons(totalPages) {
+  // Clear page numbers
+  pageNumbers.innerHTML = '';
+
+  // Calculate which page numbers to show
+  let startPage = Math.max(1, currentPage - 2);
+  let endPage = Math.min(totalPages, currentPage + 2);
+
+  // Adjust if we're near the start or end
+  if (currentPage <= 3) {
+    endPage = Math.min(5, totalPages);
+  }
+  if (currentPage >= totalPages - 2) {
+    startPage = Math.max(1, totalPages - 4);
+  }
+
+  // Add page number buttons
+  for (let i = startPage; i <= endPage; i++) {
+    const pageBtn = document.createElement('button');
+    pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
+    pageBtn.textContent = i;
+    pageBtn.onclick = () => goToPage(i);
+    pageNumbers.appendChild(pageBtn);
+  }
+
+  // Update button states
+  firstPageBtn.disabled = currentPage === 1;
+  prevPageBtn.disabled = currentPage === 1;
+  nextPageBtn.disabled = currentPage === totalPages;
+  lastPageBtn.disabled = currentPage === totalPages;
+}
+
+function setupPagination() {
+  firstPageBtn.onclick = () => goToPage(1);
+  prevPageBtn.onclick = () => goToPage(currentPage - 1);
+  nextPageBtn.onclick = () => goToPage(currentPage + 1);
+  lastPageBtn.onclick = () => goToPage(Math.ceil(filteredData.length / pageSize));
+  
+  pageSizeSelect.onchange = (e) => {
+    pageSize = parseInt(e.target.value);
+    currentPage = 1;
+    filterAndSortData();
+    renderTable();
+  };
+}
+
+function goToPage(page) {
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  if (page < 1 || page > totalPages) return;
+  
+  currentPage = page;
+  renderTable();
+  
+  // Scroll to top of table
+  inventoryBody.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function escapeHtml(s) {
   if (s === null || s === undefined) return '';
   return String(s)
@@ -130,24 +217,33 @@ function escapeHtml(s) {
     .replaceAll("'", '&#39;');
 }
 
-// wired to your button onclick
+// Wired to your button onclick
 function sortTable() {
-  currentSortAsc = !currentSortAsc; // toggle
+  currentSortAsc = !currentSortAsc;
+  filterAndSortData();
   renderTable();
 }
 
-// searchTable is used by onkeyup (keeps same name)
+// searchTable is used by onkeyup
 function searchTable() {
+  filterAndSortData();
   renderTable();
 }
 
 // Wire up filter change
-roomFilter.addEventListener('change', renderTable);
+roomFilter.addEventListener('change', () => {
+  filterAndSortData();
+  renderTable();
+});
 
 // Initialize on load
 window.addEventListener('DOMContentLoaded', () => {
   loadJSON();
+  setupPagination();
 });
+
+// ... (keep your existing functions for row selection, inline editing, etc. below)
+// Make sure to update any functions that modify the table to call renderTable() instead of directly manipulating the DOM
 
 // ===== HISTORY ACTION DROPDOWN =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -198,91 +294,353 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-// ====== INLINE EDITING FEATURE ======
-document.addEventListener('DOMContentLoaded', () => {
+
+// ====== ROW SELECTION + DELETE + INLINE EDITING SYSTEM ======
+let selectedRow = null;
+let selectedRowId = null;
+
+function initializeRowSelection() {
   const inventoryTable = document.getElementById('inventoryTable');
   if (!inventoryTable) return;
 
-  // Editable columns by name
-  const editableColumns = {
-    'Description': 'text',
-    'Remarks': 'text',
-    'Quantity (Beg)': 'number',
-    'Ending': 'number'
-  };
+  // Add click event to table rows
+  inventoryTable.addEventListener('click', function(e) {
+    const row = e.target.closest('tr');
+    if (!row || !row.dataset.id) return;
 
-  inventoryTable.addEventListener('click', (e) => {
     const cell = e.target.closest('td');
-    const header = cell && cell.closest('table').querySelectorAll('th')[cell.cellIndex];
-    if (!cell || !header) return;
+    if (!cell) return;
 
-    const colName = header.textContent.trim();
-    const inputType = editableColumns[colName];
-    if (!inputType) return; // not editable
+    // Don't select if clicking on delete button or input field
+    if (e.target.closest('.delete-btn') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
 
-    // Prevent multiple editors
-    if (cell.classList.contains('editing')) return;
+    // If same row clicked again, deselect it
+    if (selectedRow === row) {
+      deselectRow();
+      return;
+    }
 
-    const oldValue = cell.textContent.trim();
-    cell.classList.add('editing');
-    cell.classList.add('editable');
-    cell.innerHTML = `<input type="${inputType === 'number' ? 'number' : 'text'}" 
-                        class="inline-input" value="${oldValue}">`;
+    // Deselect previous row
+    deselectRow();
 
-    const input = cell.querySelector('input');
-    input.focus();
-
-    // Save on Enter or blur
-    const save = () => {
-      let newValue = input.value.trim();
-      if (inputType === 'number' && newValue !== '' && isNaN(newValue)) {
-        alert('Please enter a valid number.');
-        return;
-      }
-      cell.textContent = newValue || '';
-      cell.classList.remove('editing');
-    };
-
-    input.addEventListener('blur', save);
-    input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') {
-        ev.preventDefault();
-        input.blur();
-      } else if (ev.key === 'Escape') {
-        cell.textContent = oldValue;
-        cell.classList.remove('editing');
-      }
-    });
+    // Select new row
+    selectRow(row);
   });
+
+  // Add double-click for inline editing
+  inventoryTable.addEventListener('dblclick', function(e) {
+    const cell = e.target.closest('td');
+    const row = e.target.closest('tr');
+    
+    if (!cell || !row || !row.dataset.id) return;
+    if (e.target.closest('.delete-btn') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    startInlineEdit(cell, row.dataset.id);
+  });
+
+  // Click outside to deselect
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#inventoryTable tbody tr') && !e.target.closest('.delete-btn')) {
+      deselectRow();
+    }
+  });
+}
+
+function selectRow(row) {
+  selectedRow = row;
+  selectedRowId = row.dataset.id;
+  
+  // Add selected class
+  row.classList.add('selected-row');
+  
+  // Get the last cell (Remarks column)
+  const lastCell = row.cells[row.cells.length - 1];
+  
+  // Create delete button
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.innerHTML = 'x';
+  deleteBtn.title = 'Delete this item';
+  deleteBtn.onclick = function(e) {
+    e.stopPropagation();
+    deleteSelectedItem();
+  };
+  
+  // Append to last cell instead of row
+  lastCell.appendChild(deleteBtn);
+}
+
+function deselectRow() {
+  if (selectedRow) {
+    selectedRow.classList.remove('selected-row');
+    const lastCell = selectedRow.cells[selectedRow.cells.length - 1];
+    const deleteBtn = lastCell.querySelector('.delete-btn');
+    if (deleteBtn) {
+      deleteBtn.remove();
+    }
+    selectedRow = null;
+    selectedRowId = null;
+  }
+}
+
+function deleteSelectedItem() {
+  if (!selectedRowId) return;
+  
+  if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+    return;
+  }
+
+  fetch('api/delete_item.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: selectedRowId })
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      // Remove row from table
+      selectedRow.remove();
+      // Show success message
+      alert('Item deleted successfully!');
+      // Refresh the table data
+      loadJSON();
+    } else {
+      alert('Failed to delete item: ' + (result.error || 'Unknown error'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Connection error: ' + error.message);
+  });
+}
+
+// Replace the existing inline editing code with this:
+function startInlineEdit(cell, rowId) {
+  if (cell.classList.contains('editing')) return;
+  
+  const row = cell.parentElement;
+  const colIndex = cell.cellIndex;
+  const header = document.querySelectorAll('#inventoryTable th')[colIndex];
+  const colName = header.textContent.trim();
+  
+  if (!rowId) return;
+
+  cell.classList.add('editing', 'editing-cell');
+  
+  const oldVal = cell.textContent.trim();
+  let inputEl;
+
+  // ROOM DROPDOWN
+  if (colName === 'Room') {
+    inputEl = document.createElement('select');
+    inputEl.className = 'inline-input';
+    ['Chemical Room', 'Laboratory 1', 'Laboratory 2', 'Storage Room']
+      .forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        if (opt === oldVal) o.selected = true;
+        inputEl.appendChild(o);
+      });
+  }
+  // DESCRIPTION = textarea
+  else if (colName === 'Description') {
+    inputEl = document.createElement('textarea');
+    inputEl.value = oldVal;
+    inputEl.className = 'inline-input';
+    inputEl.style.minHeight = '60px';
+    
+    inputEl.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    setTimeout(() => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = (inputEl.scrollHeight) + 'px';
+    }, 0);
+  }
+  // Quantity columns
+  else if (
+    colName.includes('Quantity') ||
+    colName.includes('Acquisition') ||
+    colName.includes('Ending') ||
+    colName.includes('Pull-out')
+  ) {
+    inputEl = document.createElement('input');
+    inputEl.type = 'number';
+    inputEl.value = oldVal;
+    inputEl.className = 'inline-input';
+    inputEl.min = 0;
+  }
+  // Default: text input
+  else {
+    inputEl = document.createElement('input');
+    inputEl.type = 'text';
+    inputEl.value = oldVal;
+    inputEl.className = 'inline-input';
+  }
+
+  // Clear cell and add input
+  cell.innerHTML = '';
+  cell.appendChild(inputEl);
+  inputEl.focus();
+
+  function finishSave() {
+    const newVal = inputEl.value.trim();
+    cell.textContent = newVal;
+    cell.classList.remove('editing', 'editing-cell');
+
+    // SEND TO SERVER
+    fetch('api/update_item.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: rowId,
+        column: colName,
+        value: newVal
+      })
+    })
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+      return r.json();
+    })
+    .then(res => {
+      if (!res.success) {
+        console.error("Save failed:", res.error);
+        alert("Save failed: " + res.error);
+        cell.textContent = oldVal;
+      } else {
+        console.log("Save successful");
+      }
+    })
+    .catch(err => {
+      console.error("Connection error:", err);
+      alert("Connection error: " + err.message);
+      cell.textContent = oldVal;
+    });
+  }
+
+  inputEl.addEventListener('blur', finishSave);
+  inputEl.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      inputEl.blur();
+    }
+    if (ev.key === 'Escape') {
+      cell.textContent = oldVal;
+      cell.classList.remove('editing', 'editing-cell');
+    }
+  });
+}
+
+// Initialize the row selection system when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    initializeRowSelection();
+  }, 1000); // Wait a bit for the table to load
 });
+
 // ====== ADD NEW ITEM FEATURE ======
 document.addEventListener('DOMContentLoaded', () => {
   const addItemBtn = document.getElementById('addItemBtn');
+  const saveNewItemBtn = document.getElementById('saveNewItemBtn');
   const inventoryBody = document.getElementById('inventoryBody');
 
   if (!addItemBtn || !inventoryBody) return;
 
+  let newItemRow = null;
+
   addItemBtn.addEventListener('click', () => {
-    // Create a new blank row
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-      <td contenteditable="true" class="editable">New Item</td>
-      <td contenteditable="true" class="editable">Select Room</td>
-      <td contenteditable="true" class="editable">Enter Description</td>
-      <td contenteditable="true" class="editable" data-type="number">0</td>
-      <td contenteditable="true" class="editable">0</td>
-      <td contenteditable="true" class="editable" data-type="number">0</td>
-      <td contenteditable="true" class="editable" data-type="number">0</td>
-      <td contenteditable="true" class="editable">Remarks</td>
+    // Remove any existing unsaved new item
+    if (newItemRow) {
+      newItemRow.remove();
+    }
+
+    // Create new row with editable inputs
+    newItemRow = document.createElement('tr');
+    newItemRow.innerHTML = `
+      <td><input type="text" class="new-item-input" placeholder="Item Name" required style="width: 95%;"></td>
+      <td>
+        <select class="new-item-input" style="width: 95%;">
+          <option value="Chemical Room">Chemical Room</option>
+          <option value="Laboratory 1">Laboratory 1</option>
+          <option value="Laboratory 2">Laboratory 2</option>
+          <option value="Storage Room">Storage Room</option>
+        </select>
+      </td>
+      <td><textarea class="new-item-input" placeholder="Enter Description" style="width: 95%; height: 45px;"></textarea></td>
+      <td style="text-align: center;"><input type="number" class="new-item-input" value="0" min="0" style="width: 80%; text-align: center;"></td>
+      <td style="text-align: center;"><input type="number" class="new-item-input" value="0" min="0" style="width: 80%; text-align: center;"></td>
+      <td style="text-align: center;"><input type="number" class="new-item-input" value="0" min="0" style="width: 80%; text-align: center;"></td>
+      <td style="text-align: center;"><input type="number" class="new-item-input" value="0" min="0" style="width: 80%; text-align: center;"></td>
+      <td><textarea class="new-item-input" placeholder="Remarks" style="width: 100%; height: 45px"></textarea></td>
     `;
 
-    // Style highlight for new row
-    newRow.style.backgroundColor = "rgba(255, 214, 0, 0.1)";
-    newRow.style.transition = "background-color 0.3s ease";
+    newItemRow.style.backgroundColor = "rgba(255, 214, 0, 0.15)";
+    inventoryBody.prepend(newItemRow);
+    
+    // Show save button
+    saveNewItemBtn.style.display = 'inline-block';
+  });
 
-    inventoryBody.prepend(newRow); // Add to top of table
+  // Save new item to database
+  saveNewItemBtn.addEventListener('click', () => {
+    if (!newItemRow) return;
+
+    const inputs = newItemRow.querySelectorAll('.new-item-input');
+    const itemData = {
+      item: inputs[0].value.trim(),
+      room: inputs[1].value,
+      description: inputs[2].value.trim(),
+      beginning: inputs[3].value || '0',
+      acquisition: inputs[4].value || '0', 
+      ending: inputs[5].value || '0',
+      pullout: inputs[6].value || '0',
+      remarks: inputs[7].value.trim(),
+      category: 'EQUIPMENT/APPARATUSES'
+    };
+
+    // Validate required fields
+    if (!itemData.item) {
+      alert('Item name is required!');
+      return;
+    }
+
+    // Send to server
+    fetch('api/add_item.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(itemData)
+    })
+    .then(response => response.json())
+    .then(result => {
+      if (result.success) {
+        // Success - reload the table to show the new item
+        loadJSON();
+        
+        // Reset UI
+        newItemRow.remove();
+        newItemRow = null;
+        saveNewItemBtn.style.display = 'none';
+        
+        // Show success message
+        alert('Item added successfully!');
+      } else {
+        alert('Failed to add item: ' + (result.error || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Connection error: ' + error.message);
+    });
   });
 });
+
 // ====== RESERVATION FEATURE ======
 document.addEventListener('DOMContentLoaded', () => {
   const reserveItem = document.getElementById('reserveItem');
@@ -310,22 +668,21 @@ document.addEventListener('DOMContentLoaded', () => {
     li.textContent = `${itemName} — ${dateNeeded}`;
     reservedList.appendChild(li);
 
-popup.textContent = `${itemName} has been reserved`;
+    popup.textContent = `${itemName} has been reserved`;
 
-// Reset state first (if it was hiding)
-popup.classList.remove('hide');
-popup.style.display = 'block';
+    // Reset state first (if it was hiding)
+    popup.classList.remove('hide');
+    popup.style.display = 'block';
 
-// Fade in
-setTimeout(() => popup.classList.add('show'), 10);
+    // Fade in
+    setTimeout(() => popup.classList.add('show'), 10);
 
-// Fade out after 2 seconds
-setTimeout(() => {
-  popup.classList.remove('show');
-  popup.classList.add('hide');
-  setTimeout(() => (popup.style.display = 'none'), 400); // matches fade duration
-}, 2000);
-
+    // Fade out after 2 seconds
+    setTimeout(() => {
+      popup.classList.remove('show');
+      popup.classList.add('hide');
+      setTimeout(() => (popup.style.display = 'none'), 400);
+    }, 2000);
 
     // Reset form
     reserveItem.value = '';
@@ -333,4 +690,3 @@ setTimeout(() => {
     reserveBtn.disabled = true;
   });
 });
-

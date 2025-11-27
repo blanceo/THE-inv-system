@@ -8,8 +8,11 @@
 }
 
 body{
-    background-color: #c9d6ff;
-    background: linear-gradient(to right, #e2e2e2, #ffcfc9);
+    background-image: url(SPACE2.jpg);
+    background-size: cover;
+    background-position: fixed;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -18,9 +21,9 @@ body{
 }
 
 .container{
-    background-color: #fff;
+    background-color: #ffb15a;
     border-radius: 30px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+    box-shadow: 5px 5px 20px rgba(255, 255, 255, 0.35);
     position: relative;
     overflow: hidden;
     width: 768px;
@@ -47,7 +50,7 @@ body{
 }
 
 .container button{
-    background-color: #a82d2d;
+    background-color: #000000;
     color: #fff;
     font-size: 12px;
     padding: 10px 45px;
@@ -60,13 +63,22 @@ body{
     cursor: pointer;
 }
 
+.container button:hover{
+    background-color: white;
+    color: black;
+    box-shadow: 0 0 10px #000000;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
 .container button.hidden{
-    background-color: transparent;
+    background-color: black;
     border-color: #fff;
+    color: white;
 }
 
 .container form{
-    background-color: #fff;
+    background-color: #ffb15a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -76,7 +88,8 @@ body{
 }
 
 .container input{
-    background-color: #eee;
+    background-color: #000000;
+    color: #fff;
     border: none;
     margin: 8px 0;
     padding: 10px 15px;
@@ -133,7 +146,7 @@ body{
 }
 
 .social-icons a{
-    border: 1px solid #ccc;
+    border: 1px solid #000000;
     border-radius: 20%;
     display: inline-flex;
     justify-content: center;
@@ -163,7 +176,7 @@ body{
 .toggle{
     background-color: #a82d2d;
     height: 100%;
-    background: linear-gradient(to right, #9e0404, #d00000);
+    background: linear-gradient(to right, #555555, #000000);
     color: #fff;
     position: relative;
     left: -100%;
