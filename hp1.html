@@ -13,10 +13,10 @@
 
   <!-- Tab Bar -->
   <div class="tab-bar">
-    <div class="tab active" data-target="home">Home</div>
-    <div class="tab" data-target="about">About Us</div>
-    <div class="tab" data-target="schedule">Schedule</div>
-    <div class="tab" data-target="reports">Reports</div>
+    <div class="tab active" data-target="home">HOME</div>
+    <div class="tab" data-target="about">ABOUT US</div>
+    <div class="tab" data-target="schedule">SCHEDULE</div>
+    <div class="tab" data-target="reports">REPORTS</div>
   </div>
 
   <!-- Content Sections -->
@@ -25,7 +25,7 @@
       <h1>LabTrack</h1>
       <div class="home-row">
         <p>
-          A minimal, web-based inventory management system designed for the senior high school laboratory. 
+          The web-based inventory management system designed for the senior high school laboratory. 
           Elegant, fast, and easy to use.
         </p>
         <div class="login-container">
@@ -37,7 +37,7 @@
     <div id="about" class="content-section">
       <div class="about-container">
         <div class="about-text">
-          <h1>The Researchers</h1>
+          <h1>The Team</h1>
           <p>
             We are a group of STEM InfoTech students from Pasig Catholic College, and this project, <b><i>LabTrack</i></b>, 
             was developed as part of our Practical Research 2 course.
@@ -87,12 +87,21 @@
   <script>
     const tabs = document.querySelectorAll('.tab');
     const sections = document.querySelectorAll('.content-section');
+    const body = document.body;
+    
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         tabs.forEach(t => t.classList.remove('active'));
         sections.forEach(s => s.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById(tab.dataset.target).classList.add('active');
+        
+        // Change background image based on active tab
+        if (tab.dataset.target === 'home') {
+          body.style.backgroundImage = "url('homepage.png')";
+        } else {
+          body.style.backgroundImage = "url('space2.jpg')";
+        }
       });
     });
   </script>

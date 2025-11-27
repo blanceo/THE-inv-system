@@ -2,13 +2,199 @@
 body { 
   font-family: Arial, sans-serif; 
   margin: 0; 
-  background: #ffe8df; 
+  background: #c9c9c7; 
 }
 
 /* ====== HEADER ====== */
+h1 {
+  color: #ffffff;
+}
+
+/* ====== TABLE COLUMN WIDTHS ====== */
+#inventoryTable {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 1200px; /* Ensure minimum width to prevent squishing */
+}
+
+#inventoryTable th:nth-child(1), /* Item */
+#inventoryTable td:nth-child(1) {
+  width: 18%;
+  min-width: 150px;
+}
+
+#inventoryTable th:nth-child(2), /* Room */
+#inventoryTable td:nth-child(2) {
+  width: 12%;
+  min-width: 100px;
+}
+
+#inventoryTable th:nth-child(3), /* Description */
+#inventoryTable td:nth-child(3) {
+  width: 22%;
+  min-width: 180px;
+}
+
+#inventoryTable th:nth-child(4), /* Quantity (Beginning) */
+#inventoryTable td:nth-child(4) {
+  width: 8%;
+  min-width: 80px;
+  text-align: center;
+}
+
+#inventoryTable th:nth-child(5), /* Acquisition/Transfer */
+#inventoryTable td:nth-child(5) {
+  width: 8%;
+  min-width: 80px;
+  text-align: center;
+}
+
+#inventoryTable th:nth-child(6), /* Quantity (End) */
+#inventoryTable td:nth-child(6) {
+  width: 8%;
+  min-width: 80px;
+  text-align: center;
+}
+
+#inventoryTable th:nth-child(7), /* Pull-out */
+#inventoryTable td:nth-child(7) {
+  width: 8%;
+  min-width: 70px;
+  text-align: center;
+}
+
+#inventoryTable th:nth-child(8), /* Remarks */
+#inventoryTable td:nth-child(8) {
+  width: 16%;
+  min-width: 140px;
+}
+
+/* Ensure consistent text alignment in regular cells */
+#inventoryTable td {
+  vertical-align: middle;
+  word-wrap: break-word;
+  padding: 8px;
+}
+
+/* Center align the quantity columns */
+#inventoryTable td:nth-child(4),
+#inventoryTable td:nth-child(5),
+#inventoryTable td:nth-child(6),
+#inventoryTable td:nth-child(7) {
+  text-align: center;
+}
+
+/* Responsive table container */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+}
+
+/* Make table responsive on smaller screens */
+@media (max-width: 1400px) {
+  #inventoryTable {
+    min-width: 1000px;
+  }
+  
+  #inventoryTable th:nth-child(1),
+  #inventoryTable td:nth-child(1) {
+    width: 16%;
+    min-width: 130px;
+  }
+  
+  #inventoryTable th:nth-child(3),
+  #inventoryTable td:nth-child(3) {
+    width: 20%;
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-container {
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  #inventoryTable th,
+  #inventoryTable td {
+    padding: 6px 4px;
+  }
+}
+
+#inventoryTable td input,
+#inventoryTable td select,
+#inventoryTable td textarea {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* input sizing fix */
+/* Force specific widths for number inputs */
+#inventoryTable td input[type="number"] {
+  width: 80px !important;
+  min-width: 60px !important;
+  max-width: 100px !important;
+  text-align: center;
+  padding: 4px 2px;
+}
+
+/* For text inputs in smaller columns */
+#inventoryTable td:nth-child(4) input[type="text"],
+#inventoryTable td:nth-child(5) input[type="text"],
+#inventoryTable td:nth-child(6) input[type="text"],
+#inventoryTable td:nth-child(7) input[type="text"] {
+  width: 90% !important;
+  max-width: 120px !important;
+}
+
+/* Ensure new item row inputs are consistent */
+.new-item-input[type="number"] {
+  width: 80px !important;
+  max-width: 100px !important;
+  margin: 0 auto;
+  display: block;
+}
+
+
+/* Ensure inputs in new item row fill their cells properly */
+.new-item-input {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 14px;
+  box-sizing: border-box; /* Important for proper sizing */
+}
+
+.new-item-input:focus {
+  outline: 2px solid #ff7c1e;
+  border-color: #ff7c1e;
+}
+
+/* Style the select and textarea to match */
+.new-item-input[type="text"],
+.new-item-input[type="number"] {
+  height: 30px;
+}
+
+.new-item-input textarea {
+  height: 60px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.new-item-input select {
+  height: 30px;
+}
+
+
 header { 
-  background: linear-gradient(to right, #7a0000, #ff7c1e);
-  color: white; 
+  background: linear-gradient(to right, #1e1e1e, #555555);
+  color: rgb(255, 255, 255); 
   padding: 20px 15px; 
   text-align: center; 
   font-size: 1.8rem;
@@ -18,7 +204,7 @@ header {
 
 /* ====== NAVIGATION BAR ====== */
 nav { 
-  background: #ffe8df; /* subtle contrast to the header */
+  background: #c9c9c7; /* subtle contrast to the header */
   padding: 12px; 
   display: flex; 
   justify-content: center; 
@@ -30,7 +216,7 @@ nav button {
   padding: 20px 25px; 
   border: none; 
   border-radius: 20px; 
-  background: linear-gradient(to right, #7a0000, #9c1a00);
+  background: linear-gradient(to right, #000000, #424242);
   color: white; 
   cursor: pointer; 
   font-size: 1rem;
@@ -38,6 +224,8 @@ nav button {
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
+
 
 /* Hover & Active State */
 nav button:hover { 
@@ -87,13 +275,33 @@ table {
   border-radius: 6px;
   overflow: hidden;
 }
+
+#sortTable {
+  background: linear-gradient(to right, #232121, #555234) !important;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px !important;
+  font-weight: bold;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+#sortTable:hover {
+  background: #b3b3b3 !important;
+  color: #000000;
+  box-shadow: 0 0 10px #5f5f5f;
+  
+}
+
 /* ====== ADD ITEM BUTTON ====== */
 #addItemBtn {
   background: #FFD600;
-  color: #7a0000;
+  color: #242424;
   border: 2px solid #FFD600;
   padding: 10px 20px;
   border-radius: 30px;
+  font-size: 16px !important;
   font-weight: bold;
   margin-left: 10px;
   cursor: pointer;
@@ -101,7 +309,7 @@ table {
 }
 
 #addItemBtn:hover {
-  background: #7a0000;
+  background: #242424;
   color: #FFD600;
   box-shadow: 0 0 10px rgba(255, 214, 0, 0.6);
 }
@@ -113,7 +321,7 @@ th, td {
 }
 
 th { 
-  background: linear-gradient(to right, #7a0000, #a30000); 
+  background: linear-gradient(to right, #000000, #424242); 
   color: white; 
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -176,10 +384,11 @@ th {
   background: linear-gradient(to right, #7a0000, #ff7c1e);
   color: white;
 }
-/*inline editing*/
+/* ====== INLINE EDITING IMPROVEMENTS ====== */
 .editing {
   background: #fff3e0 !important;
   outline: 2px solid #ff7c1e;
+  padding: 0 !important; /* Remove cell padding when editing */
 }
 
 .editable:hover {
@@ -187,14 +396,17 @@ th {
   cursor: pointer;
 }
 
+/* Input styling for inline editing */
 input.inline-input {
-  width: 100%;
+  width: 100% !important;
   border: none;
   background: #fff7ef;
-  padding: 4px;
+  padding: 8px 4px !important; /* Match cell padding */
   font-size: 14px;
   font-family: inherit;
   color: #333;
+  box-sizing: border-box;
+  margin: 0;
 }
 
 input.inline-input:focus {
@@ -202,6 +414,48 @@ input.inline-input:focus {
   background: white;
 }
 
+/* Textarea for description editing */
+textarea.inline-input {
+  width: 100% !important;
+  border: none;
+  background: #fff7ef;
+  padding: 8px 4px !important;
+  font-size: 14px;
+  font-family: inherit;
+  color: #333;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 60px;
+  margin: 0;
+}
+
+textarea.inline-input:focus {
+  outline: 2px solid #ff7c1e;
+  background: white;
+}
+
+/* Select dropdown styling */
+select.inline-input {
+  width: 100% !important;
+  border: none;
+  background: #fff7ef;
+  padding: 6px 4px !important;
+  font-size: 14px;
+  font-family: inherit;
+  color: #333;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+select.inline-input:focus {
+  outline: 2px solid #ff7c1e;
+  background: white;
+}
+
+/* Ensure the editing cell has no extra padding */
+#inventoryTable td.editing {
+  padding: 0 !important;
+}
 /* column width*/
 #historyTable th:nth-child(4),
 #historyTable td:nth-child(4) {
@@ -252,7 +506,7 @@ input.inline-input:focus {
 /* ====== RESERVED LIST ====== */
 #reservedListContainer {
   margin-top: 25px;
-  background: linear-gradient(to right, #7a0000, #ff7c1e);
+  background: linear-gradient(to right, #1e1e1e, #555555);
   padding: 20px;
   border-radius: 10px;
   border: 1px solid #ffd6004d;
@@ -280,5 +534,439 @@ input.inline-input:focus {
   border: 1px solid rgba(255, 214, 0, 0.3);
 }
 
+/* ====== SAVE BUTTON ====== */
+#saveNewItemBtn {
+  background: #242424 !important;
+  color: #FFD600 !important;
+  border: 2px solid #212121;
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  display: none; /* Start hidden */
+}
+
+#saveNewItemBtn:hover {
+  background: #FFD600 !important;
+  color: #212121 !important; /* Keep the yellow text on hover */
+  border-color: #191919  !important;
+  box-shadow: 0 0 10px #fac517;
+}
 
 
+/* ====== DELETE BUTTON STYLING ====== */
+.delete-row-btn {
+  background: #e9031a;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  margin: 0 auto;
+  display: block;
+}
+
+.delete-row-btn:hover {
+  background: #500910;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
+/* ====== CUSTOM CONFIRMATION POPUP RESERVATION APPROVAL ====== */
+.confirmation-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.confirmation-popup.show {
+  display: flex;
+}
+
+.confirmation-content {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+
+.confirmation-content h3 {
+  margin: 0 0 15px 0;
+  color: #dc3545;
+  font-size: 20px;
+}
+
+.confirmation-content p {
+  margin: 0 0 25px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.confirmation-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.confirm-yes {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.confirm-yes:hover {
+  background: #c82333;
+}
+
+.confirm-no {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.confirm-no:hover {
+  background: #5a6268;
+}
+
+.reservation-status { 
+  padding: 4px 8px; 
+  border-radius: 4px; 
+  font-weight: bold; 
+  font-size: 12px;
+}
+.status-pending { background: #fff3cd; color: #856404; }
+.status-approved { background: #d1ecf1; color: #0c5460; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+
+.admin-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.approve-btn {
+  background: #28a745 !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.reject-btn {
+  background: #dc3545 !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.completed-badge {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.reservation-status { 
+  padding: 4px 8px; 
+  border-radius: 4px; 
+  font-weight: bold; 
+  font-size: 12px;
+}
+.status-pending { background: #fff3cd; color: #856404; }
+.status-approved { background: #d1ecf1; color: #0c5460; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+
+.admin-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.approve-btn {
+  background: #28a745 !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.reject-btn {
+  background: #dc3545 !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.completed-badge {
+  color: #6c757d;
+  font-style: italic;
+
+}
+/* Notification Badge Styles */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 5px rgba(255, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+  }
+}
+
+/* Make the button container relative for positioning */
+nav button {
+  position: relative;
+  
+}
+
+/* Alternative: Delete button inside last cell */
+.selected-row {
+  background-color: #f9fde3 !important;
+  border: 2px solid #FFD600 !important;
+}
+
+.delete-btn {
+  position: absolute; /* Remove absolute positioning */
+  top: -5px;
+  right: 1px;
+  background: #d70c0c;
+  padding: 0px;
+  line-height: 0.5px;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+
+.delete-btn:hover {
+  background: #cc0000;
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* Make sure the last cell has the delete button */
+#inventoryTable tbody tr td:last-child {
+  position: relative;
+}
+
+/* Make table rows relative for positioning */
+#inventoryTable tbody tr {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#inventoryTable tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Editing styles */
+.editing-cell {
+  background-color: #fff3cd !important;
+}
+
+.inline-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.inline-input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+/* ====== PAGINATION STYLES ====== */
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #dee2e6;
+  background: white;
+  color: #a26c07;
+  cursor: pointer;
+  border-radius: 4px; 
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #000000;
+  color: #ffd600;
+  border-color: #000000;
+  font-weight: bold;
+}
+
+.pagination-btn:disabled {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  border-color: #dee2e6;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 5px;
+}
+
+.page-number {
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  background: white;
+  color: #a26c07;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  min-width: 40px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.page-number:hover {
+  background: #ffd600;
+  color: #000000;
+  font-weight: bold;
+}
+
+.page-number.active {
+  background: #000000;
+  color: #ffd600;
+  border-color: #000000;
+}
+
+.page-size-selector {
+  font-size: 14px;
+}
+
+.page-size-selector select {
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+}
+
+/* ====== SORTABLE TABLE HEADERS ====== */
+.sortable-header {
+  cursor: pointer;
+  position: relative;
+  padding-right: 20px !important;
+  user-select: none;
+}
+
+.sortable-header:hover {
+  background: #ff7c1e !important;
+}
+
+.sort-arrow {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #ffd600;
+}
+
+.sort-arrow.asc::after {
+  content: "↑";
+}
+
+.sort-arrow.desc::after {
+  content: "↓";
+}
+
+.sort-arrow::after {
+  display: block;
+  transition: all 0.2s ease;
+}
