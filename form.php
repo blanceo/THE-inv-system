@@ -6,7 +6,8 @@ if (!isAdmin()) {
     echo "<script>alert('Access denied! Admin only.'); window.location.href = 'teacher_dashboard.php';</script>";
     exit;
 }
-
+$isAdmin = isAdmin();
+$userName = $_SESSION['full_name'];
 // Temporary debug
 echo "<!-- DEBUG: User Type: " . $_SESSION['user_type'] . " -->";
 echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
@@ -16,13 +17,17 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  
   <title>LabTrack - Inventory System</title>
   <link rel="stylesheet" href="form.css">
 </head>
 <body>
 
 <header>
-  <h1>LabTrack - SHS Laboratory Inventory</h1>
+  <h1>LabTrack - SHS Laboratory Inventory</h1>  
+  <div style="float: center;">
+    Welcome, <?php echo $userName; ?>
+  </div>
 </header>
 
 <!-- Main App -->
@@ -33,6 +38,7 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
     Reservation Requests
     <span class="notification-badge" id="reservationNotification" style="display: none;">0</span>
   </button>
+  <button onclick="window.location.href='calendar.php'">📅 Calendar</button>
   <button onclick="logout()">Logout</button>
 </nav>
 
@@ -126,8 +132,8 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
     <div class="page-size-selector">
       <label>Items per page:
         <select id="reservationsPageSize">
-          <option value="10">10</option>
-          <option value="15" selected>15</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
           <option value="20">20</option>
           <option value="50">50</option>
         </select>
@@ -191,10 +197,22 @@ function showSection(sectionId) {
   }
 }
 
-function logout() {
-  if (confirm('Are you sure you want to logout?')) {
-    window.location.href = 'hp1.html';
+// Handle hash navigation from calendar
+window.addEventListener('DOMContentLoaded', function() {
+  const hash = window.location.hash.substring(1); // Remove the #
+  if (hash) {
+    // Show the section based on hash
+    showSection(hash);
   }
+});
+
+function logout() {
+  showConfirmation(
+    'Are you sure you want to logout?',
+    () => {
+      window.location.href = 'hp1.html';
+    }
+  );
 }
 
 // Notification System
@@ -238,7 +256,7 @@ function startNotificationPolling() {
 let allReservations = [];
 let filteredReservations = [];
 let currentReservationsPage = 1;
-let reservationsPageSize = 15;
+let reservationsPageSize = 10;
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
 
@@ -529,31 +547,34 @@ function filterReservations() {
 // Update the existing updateReservation function to refresh the table
 function updateReservation(reservationId, status) {
   const action = status === 'approved' ? 'approve' : 'reject';
-  if (!confirm(`Are you sure you want to ${action} this reservation?`)) return;
   
-  const formData = new FormData();
-  formData.append('reservation_id', reservationId);
-  formData.append('status', status);
-  
-  fetch('update_reservation_status.php', {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => response.json())
-  .then(data => {
-    alert(data.message);
-    if (data.success) {
-      // Reload reservations with current filter and sorting
-      const currentFilter = document.getElementById('statusFilter').value;
-      loadAdminReservations(currentFilter);
+  showConfirmation(
+    `Are you sure you want to ${action} this reservation?`,
+    () => {
+      const formData = new FormData();
+      formData.append('reservation_id', reservationId);
+      formData.append('status', status);
       
-      // Update notification count
-      checkForPendingReservations();
+      fetch('update_reservation_status.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(data.message, 'success');
+          const currentFilter = document.getElementById('statusFilter').value;
+          loadAdminReservations(currentFilter);
+          checkForPendingReservations();
+        } else {
+          showNotification(data.message || 'Failed to update reservation', 'error');
+        }
+      })
+      .catch(error => {
+        showNotification('Error updating reservation: ' + error.message, 'error');
+      });
     }
-  })
-  .catch(error => {
-    alert('Error updating reservation: ' + error.message);
-  });
+  );
 }
 
 // Update the DOMContentLoaded to setup reservations pagination

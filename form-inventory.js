@@ -9,6 +9,101 @@ const roomFilter = document.getElementById('roomFilter');
 const searchInput = document.getElementById('searchInput');
 const inventoryBody = document.getElementById('inventoryBody');
 
+// ====== MODERN NOTIFICATION SYSTEM ======
+function showNotification(message, type = 'info', duration = 3000) {
+  const existingNotification = document.querySelector('.modern-notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+
+  const notification = document.createElement('div');
+  notification.className = `modern-notification ${type}`;
+  
+  let icon = '';
+  switch(type) {
+    case 'success':
+      icon = '✓';
+      break;
+    case 'error':
+      icon = '✕';
+      break;
+    case 'warning':
+      icon = '⚠';
+      break;
+    case 'info':
+      icon = 'ℹ';
+      break;
+  }
+  
+  notification.innerHTML = `
+    <div class="notification-icon">${icon}</div>
+    <div class="notification-message">${message}</div>
+  `;
+  
+  document.body.appendChild(notification);
+  setTimeout(() => notification.classList.add('show'), 10);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 400);
+  }, duration);
+}
+
+// ====== MODERN CONFIRMATION DIALOG ======
+function showConfirmation(message, onConfirm, onCancel = null) {
+  const existingConfirm = document.querySelector('.modern-confirmation');
+  if (existingConfirm) {
+    existingConfirm.remove();
+  }
+
+  const confirmation = document.createElement('div');
+  confirmation.className = 'modern-confirmation';
+  confirmation.innerHTML = `
+    <div class="modern-confirmation-backdrop"></div>
+    <div class="modern-confirmation-content">
+      <div class="confirmation-header">
+        <span class="confirmation-icon">⚠</span>
+        <h3>Confirm Action</h3>
+      </div>
+      <p class="confirmation-message">${message}</p>
+      <div class="confirmation-buttons">
+        <button class="confirm-cancel-btn">Cancel</button>
+        <button class="confirm-yes-btn">Confirm</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(confirmation);
+  setTimeout(() => confirmation.classList.add('show'), 10);
+  
+  const yesBtn = confirmation.querySelector('.confirm-yes-btn');
+  const cancelBtn = confirmation.querySelector('.confirm-cancel-btn');
+  const backdrop = confirmation.querySelector('.modern-confirmation-backdrop');
+  
+  const closeConfirmation = () => {
+    confirmation.classList.remove('show');
+    setTimeout(() => confirmation.remove(), 300);
+  };
+  
+  yesBtn.addEventListener('click', () => {
+    closeConfirmation();
+    onConfirm();
+  });
+  
+  cancelBtn.addEventListener('click', () => {
+    closeConfirmation();
+    if (onCancel) onCancel();
+  });
+  
+  backdrop.addEventListener('click', () => {
+    closeConfirmation();
+    if (onCancel) onCancel();
+  });
+}
+
+
+
+
 // Pagination elements
 const paginationInfo = document.getElementById('paginationInfo');
 const pageNumbers = document.getElementById('pageNumbers');
@@ -388,34 +483,42 @@ function deselectRow() {
 }
 
 function deleteSelectedItem() {
-  if (!selectedRowId) return;
-  
-  if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+  if (!selectedRowId) {
+    showNotification('No item selected', 'warning');
     return;
   }
-
-  fetch('api/delete_item.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: selectedRowId })
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.success) {
-      // Remove row from table
-      selectedRow.remove();
-      // Show success message
-      alert('Item deleted successfully!');
-      // Refresh the table data
-      loadJSON();
-    } else {
-      alert('Failed to delete item: ' + (result.error || 'Unknown error'));
+  
+  showConfirmation(
+    'Are you sure you want to delete this item? This action cannot be undone.',
+    () => {
+      fetch('api/delete_item.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedRowId })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          // Remove the selected row
+          if (selectedRow && selectedRow.parentNode) {
+            selectedRow.remove();
+          }
+          // Clear selection
+          selectedRow = null;
+          selectedRowId = null;
+          // Reload data
+          showNotification('Item deleted successfully!', 'success');
+          loadJSON();
+        } else {
+          showNotification('Failed to delete item: ' + (result.error || 'Unknown error'), 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('Connection error: ' + error.message, 'error');
+      });
     }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    alert('Connection error: ' + error.message);
-  });
+  );
 }
 
 // Replace the existing inline editing code with this:
@@ -491,39 +594,39 @@ function startInlineEdit(cell, rowId) {
   inputEl.focus();
 
   function finishSave() {
-    const newVal = inputEl.value.trim();
-    cell.textContent = newVal;
-    cell.classList.remove('editing', 'editing-cell');
+  const newVal = inputEl.value.trim();
+  cell.textContent = newVal;
+  cell.classList.remove('editing', 'editing-cell');
 
-    // SEND TO SERVER
-    fetch('api/update_item.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: rowId,
-        column: colName,
-        value: newVal
-      })
+  // SEND TO SERVER
+  fetch('api/update_item.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: rowId,
+      column: colName,
+      value: newVal
     })
-    .then(r => {
-      if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-      return r.json();
-    })
-    .then(res => {
-      if (!res.success) {
-        console.error("Save failed:", res.error);
-        alert("Save failed: " + res.error);
-        cell.textContent = oldVal;
-      } else {
-        console.log("Save successful");
-      }
-    })
-    .catch(err => {
-      console.error("Connection error:", err);
-      alert("Connection error: " + err.message);
+  })
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+    return r.json();
+  })
+  .then(res => {
+    if (!res.success) {
+      console.error("Save failed:", res.error);
+      showNotification("Save failed: " + res.error, 'error');
       cell.textContent = oldVal;
-    });
-  }
+    } else {
+      showNotification("Changes saved successfully", 'success', 2000);
+    }
+  })
+  .catch(err => {
+    console.error("Connection error:", err);
+    showNotification("Connection error: " + err.message, 'error');
+    cell.textContent = oldVal;
+  });
+}
 
   inputEl.addEventListener('blur', finishSave);
   inputEl.addEventListener('keydown', (ev) => {
@@ -588,57 +691,53 @@ document.addEventListener('DOMContentLoaded', () => {
     saveNewItemBtn.style.display = 'inline-block';
   });
 
-  // Save new item to database
-  saveNewItemBtn.addEventListener('click', () => {
-    if (!newItemRow) return;
+// Save new item to database
+saveNewItemBtn.addEventListener('click', () => {
+  if (!newItemRow) return;
 
-    const inputs = newItemRow.querySelectorAll('.new-item-input');
-    const itemData = {
-      item: inputs[0].value.trim(),
-      room: inputs[1].value,
-      description: inputs[2].value.trim(),
-      beginning: inputs[3].value || '0',
-      acquisition: inputs[4].value || '0', 
-      ending: inputs[5].value || '0',
-      pullout: inputs[6].value || '0',
-      remarks: inputs[7].value.trim(),
-      category: 'EQUIPMENT/APPARATUSES'
-    };
+  const inputs = newItemRow.querySelectorAll('.new-item-input');
+  const itemData = {
+    item: inputs[0].value.trim(),
+    room: inputs[1].value,
+    description: inputs[2].value.trim(),
+    beginning: inputs[3].value || '0',
+    acquisition: inputs[4].value || '0', 
+    ending: inputs[5].value || '0',
+    pullout: inputs[6].value || '0',
+    remarks: inputs[7].value.trim(),
+    category: 'EQUIPMENT/APPARATUSES'
+  };
 
-    // Validate required fields
-    if (!itemData.item) {
-      alert('Item name is required!');
-      return;
+  // Validate required fields
+  if (!itemData.item) {
+    showNotification('Item name is required!', 'warning');
+    inputs[0].focus();
+    return;
+  }
+
+  // Send to server
+  fetch('api/add_item.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(itemData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      loadJSON();
+      newItemRow.remove();
+      newItemRow = null;
+      saveNewItemBtn.style.display = 'none';
+      showNotification('Item added successfully!', 'success');
+    } else {
+      showNotification('Failed to add item: ' + (result.error || 'Unknown error'), 'error');
     }
-
-    // Send to server
-    fetch('api/add_item.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(itemData)
-    })
-    .then(response => response.json())
-    .then(result => {
-      if (result.success) {
-        // Success - reload the table to show the new item
-        loadJSON();
-        
-        // Reset UI
-        newItemRow.remove();
-        newItemRow = null;
-        saveNewItemBtn.style.display = 'none';
-        
-        // Show success message
-        alert('Item added successfully!');
-      } else {
-        alert('Failed to add item: ' + (result.error || 'Unknown error'));
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Connection error: ' + error.message);
-    });
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showNotification('Connection error: ' + error.message, 'error');
   });
+});
 });
 
 // ====== RESERVATION FEATURE ======

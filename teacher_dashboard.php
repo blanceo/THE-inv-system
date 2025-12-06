@@ -26,13 +26,13 @@ require_once 'check_session.php';
 
 <div id="app">
   <nav>
-    <button onclick="showSection('reservations')">Make Reservations</button>
+    <button onclick="window.location.href='calendar.php'">📅 Calendar</button>
+    <button onclick="showSection('reservations')">Send Requests</button>
     <button onclick="showSection('myReservations')">My Reservations</button>
     <button onclick="showSection('inventory')">View Inventory</button>
     <button onclick="logout()">Logout</button>
   </nav>
 
-  <!-- Make Reservations Section -->
   <section id="reservations" class="active">
     <h2>Reserve Equipment</h2>
     
@@ -138,6 +138,107 @@ require_once 'check_session.php';
 </div>
 
 <script>
+
+  // Handle hash navigation from calendar
+window.addEventListener('DOMContentLoaded', function() {
+  const hash = window.location.hash.substring(1); // Remove the #
+  if (hash) {
+    showSection(hash);
+  }
+});
+
+// ====== MODERN NOTIFICATION SYSTEM ======
+function showNotification(message, type = 'info', duration = 3000) {
+  const existingNotification = document.querySelector('.modern-notification');
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+
+  const notification = document.createElement('div');
+  notification.className = `modern-notification ${type}`;
+  
+  let icon = '';
+  switch(type) {
+    case 'success':
+      icon = '✓';
+      break;
+    case 'error':
+      icon = '✕';
+      break;
+    case 'warning':
+      icon = '⚠';
+      break;
+    case 'info':
+      icon = 'ℹ';
+      break;
+  }
+  
+  notification.innerHTML = `
+    <div class="notification-icon">${icon}</div>
+    <div class="notification-message">${message}</div>
+  `;
+  
+  document.body.appendChild(notification);
+  setTimeout(() => notification.classList.add('show'), 10);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 400);
+  }, duration);
+}
+
+// ====== MODERN CONFIRMATION DIALOG ======
+function showConfirmation(message, onConfirm, onCancel = null) {
+  const existingConfirm = document.querySelector('.modern-confirmation');
+  if (existingConfirm) {
+    existingConfirm.remove();
+  }
+
+  const confirmation = document.createElement('div');
+  confirmation.className = 'modern-confirmation';
+  confirmation.innerHTML = `
+    <div class="modern-confirmation-backdrop"></div>
+    <div class="modern-confirmation-content">
+      <div class="confirmation-header">
+        <span class="confirmation-icon">⚠</span>
+        <h3>Confirm Action</h3>
+      </div>
+      <p class="confirmation-message">${message}</p>
+      <div class="confirmation-buttons">
+        <button class="confirm-cancel-btn">Cancel</button>
+        <button class="confirm-yes-btn">Confirm</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(confirmation);
+  setTimeout(() => confirmation.classList.add('show'), 10);
+  
+  const yesBtn = confirmation.querySelector('.confirm-yes-btn');
+  const cancelBtn = confirmation.querySelector('.confirm-cancel-btn');
+  const backdrop = confirmation.querySelector('.modern-confirmation-backdrop');
+  
+  const closeConfirmation = () => {
+    confirmation.classList.remove('show');
+    setTimeout(() => confirmation.remove(), 300);
+  };
+  
+  yesBtn.addEventListener('click', () => {
+    closeConfirmation();
+    onConfirm();
+  });
+  
+  cancelBtn.addEventListener('click', () => {
+    closeConfirmation();
+    if (onCancel) onCancel();
+  });
+  
+  backdrop.addEventListener('click', () => {
+    closeConfirmation();
+    if (onCancel) onCancel();
+  });
+}
+
 // Navigation
 function showSection(sectionId) {
   document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
@@ -151,9 +252,12 @@ function showSection(sectionId) {
 }
 
 function logout() {
-  if (confirm('Are you sure you want to logout?')) {
-    window.location.href = 'logout.php';
-  }
+  showConfirmation(
+    'Are you sure you want to logout?',
+    () => {
+      window.location.href = 'logout.php';
+    }
+  );
 }
 
 // Reservation System
@@ -161,7 +265,6 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   e.preventDefault();
   
   const formData = new FormData(this);
-  const messageDiv = document.getElementById('reserveMessage');
   const submitBtn = document.getElementById('reserveBtn');
   
   submitBtn.textContent = 'Submitting...';
@@ -174,20 +277,17 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      messageDiv.style.color = 'green';
-      messageDiv.textContent = data.message;
+      showNotification(data.message, 'success');
       this.reset();
       loadMyReservations();
     } else {
-      messageDiv.style.color = 'red';
-      messageDiv.textContent = data.message;
+      showNotification(data.message, 'error');
     }
     submitBtn.textContent = 'Submit Reservation Request';
     submitBtn.disabled = false;
   })
   .catch(error => {
-    messageDiv.style.color = 'red';
-    messageDiv.textContent = 'Error submitting reservation';
+    showNotification('Error submitting reservation', 'error');
     submitBtn.textContent = 'Submit Reservation Request';
     submitBtn.disabled = false;
   });

@@ -221,3 +221,24 @@ body{
 .container.active .toggle-right{
     transform: translateX(200%);
 }
+
+#backHomeBtn {
+  background: transparent;
+  color: #a82d2d;
+  border: 2px solid #a82d2d;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+  width: 100%;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+#backHomeBtn:hover {
+  background: #a82d2d;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(81, 45, 168, 0.3);
+}
