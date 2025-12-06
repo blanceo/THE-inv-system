@@ -241,6 +241,19 @@ nav button:active {
   transform: translateY(1px);
 }
 
+/* Active navigation button highlight */
+nav button.active-nav {
+  background: linear-gradient(to right, #ff7c1e, #ffb15a) !important;
+  color: #fff !important;
+  cursor: default !important;
+  pointer-events: none; /* Prevent clicking the current page */
+}
+
+nav button.active-nav:hover {
+  background: linear-gradient(to right, #ff7c1e, #ffb15a) !important;
+  transform: translateY(0) !important;
+}
+
 /* ====== SECTIONS ====== */
 section { 
   padding: 20px; 

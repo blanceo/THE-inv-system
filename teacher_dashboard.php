@@ -26,12 +26,12 @@ require_once 'check_session.php';
 
 <div id="app">
   <nav>
-    <button onclick="window.location.href='calendar.php'">📅 Calendar</button>
-    <button onclick="showSection('reservations')">Send Requests</button>
-    <button onclick="showSection('myReservations')">My Reservations</button>
-    <button onclick="showSection('inventory')">View Inventory</button>
-    <button onclick="logout()">Logout</button>
-  </nav>
+  <button onclick="window.location.href='calendar.php'" id="navCalendar">📅 Calendar</button>
+  <button onclick="showSection('reservations')" id="navReservations">Send Requests</button>
+  <button onclick="showSection('myReservations')" id="navMyReservations">My Reservations</button>
+  <button onclick="showSection('inventory')" id="navInventory">View Inventory</button>
+  <button onclick="logout()">Logout</button>
+</nav>
 
   <section id="reservations" class="active">
     <h2>Reserve Equipment</h2>
@@ -581,6 +581,53 @@ document.addEventListener('DOMContentLoaded', function() {
   loadMyReservations();
   setupPagination();
 });
+
+// Highlight active navigation button
+function updateActiveNav(sectionId) {
+  // Remove active class from all nav buttons
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.classList.remove('active-nav');
+  });
+  
+  // Add active class to current section
+  if (sectionId === 'reservations') {
+    document.getElementById('navReservations').classList.add('active-nav');
+  } else if (sectionId === 'myReservations') {
+    document.getElementById('navMyReservations').classList.add('active-nav');
+  } else if (sectionId === 'inventory') {
+    document.getElementById('navInventory').classList.add('active-nav');
+  }
+}
+
+// Update the showSection function to highlight active nav
+const originalShowSection = showSection;
+function showSection(sectionId) {
+  document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+  document.getElementById(sectionId).classList.add("active");
+  updateActiveNav(sectionId);
+  
+  if (sectionId === 'myReservations') {
+    loadMyReservations();
+  } else if (sectionId === 'inventory') {
+    loadInventory();
+  }
+}
+
+// Set initial active state on page load (Calendar is default now)
+document.addEventListener('DOMContentLoaded', function() {
+  // Since calendar is the landing page, no button is active initially
+  // But if they navigate to teacher_dashboard.php directly, highlight reservations
+  const urlParams = new URLSearchParams(window.location.search);
+  const section = urlParams.get('section') || window.location.hash.substring(1) || 'reservations';
+  
+  if (section) {
+    showSection(section);
+  }
+  
+  loadMyReservations();
+  setupPagination();
+});
+
 </script>
 
 <style>

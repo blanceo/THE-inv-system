@@ -433,23 +433,23 @@ nav button:active {
 
 <div id="app">
   <?php if ($isAdmin): ?>
-    <!-- Admin Navigation -->
-    <nav>
-      <button onclick="window.location.href='form.php#inventory'">Inventory</button>
-      <button onclick="window.location.href='form.php#reservationRequests'">Reservation Requests</button>
-      <button class="active-nav">📅 Calendar</button>
-      <button onclick="logout()">Logout</button>
-    </nav>
-  <?php else: ?>
-    <!-- Teacher Navigation -->
-    <nav>
-      <button class="active-nav">📅 Calendar</button>
-      <button onclick="window.location.href='teacher_dashboard.php#reservations'">Send Requests</button>
-      <button onclick="window.location.href='teacher_dashboard.php#myReservations'">My Reservations</button>
-      <button onclick="window.location.href='teacher_dashboard.php#inventory'">View Inventory</button>
-      <button onclick="logout()">Logout</button>
-    </nav>
-  <?php endif; ?>
+  <!-- Admin Navigation -->
+  <nav>
+    <button onclick="window.location.href='form.php'">Inventory</button>
+    <button onclick="window.location.href='form.php#reservationRequests'">Reservation Requests</button>
+    <button class="active-nav">📅 Calendar</button>
+    <button onclick="logout()">Logout</button>
+  </nav>
+<?php else: ?>
+  <!-- Teacher Navigation -->
+  <nav>
+    <button class="active-nav">📅 Calendar</button>
+    <button onclick="window.location.href='teacher_dashboard.php#reservations'">Send Requests</button>
+    <button onclick="window.location.href='teacher_dashboard.php#myReservations'">My Reservations</button>
+    <button onclick="window.location.href='teacher_dashboard.php#inventory'">View Inventory</button>
+    <button onclick="logout()">Logout</button>
+  </nav>
+<?php endif; ?>
 
   <div class="calendar-container">
     <div class="calendar-header">
