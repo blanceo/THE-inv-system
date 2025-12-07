@@ -90,12 +90,15 @@ require_once 'check_session.php';
   <!-- Inventory Section -->
   <section id="inventory">
     <h2>Available Inventory</h2>
+
     <div class="search-bar">
       <label>Room:
         <select id="roomFilter"><option value="">All</option></select>
       </label>
-      <input type="text" id="searchInput" placeholder="Search equipment..." onkeyup="searchTable()">
+        <input type="text" id="searchInput" placeholder="Search equipment..." onkeyup="searchTable()">
     </div>
+
+<button id="sortTable" onclick="sortTable()">Sort A–Z</button>
 
     <table id="inventoryTable">
       <thead>
@@ -350,6 +353,7 @@ let allInventoryData = [];
 let filteredInventoryData = [];
 let currentPage = 1;
 let pageSize = 10;
+let currentSortAsc = true;
 
 function loadInventory() {
   console.log('Loading inventory...');
@@ -428,8 +432,21 @@ function filterAndSortInventoryData() {
     return true;
   });
 
+  // Sort by Item column alphabetically
+  filteredInventoryData.sort((a, b) => {
+    const itemA = (a.item || a.Item || '').toString().toLowerCase();
+    const itemB = (b.item || b.Item || '').toString().toLowerCase();
+    return currentSortAsc ? itemA.localeCompare(itemB) : itemB.localeCompare(itemA);
+  });
+
   // Reset to first page when filtering
   currentPage = 1;
+}
+
+function sortTable() {
+  currentSortAsc = !currentSortAsc;
+  filterAndSortInventoryData();
+  renderInventoryTable();
 }
 
 function renderInventoryTable() {
@@ -456,15 +473,27 @@ function renderInventoryTable() {
     const quantity = item.beginning || item.Beginning || item.quantity || '0';
     const remarks = item.remarks || item.Remarks || 'N/A';
     
-    html += `
-      <tr>
-        <td>${escapeHtml(itemName)}</td>
-        <td>${escapeHtml(room)}</td>
-        <td>${escapeHtml(description)}</td>
-        <td style="text-align: center;">${escapeHtml(quantity)}</td>
-        <td>${escapeHtml(remarks)}</td>
-      </tr>
-    `;
+    const rowId = item.id || item.ID || item.item_id || '';
+const imagePath = item.image_path || '';
+
+html += `
+  <tr data-id="${rowId}" data-image="${escapeHtml(imagePath)}">
+    <td>
+      <div class="item-cell-container">
+        <span class="item-name-text">${escapeHtml(itemName)}</span>
+        <img src="eye.png" class="eye-icon" 
+             onclick="openImageModal('${rowId}', '${escapeHtml(itemName)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
+             onmouseenter="showHoverPreview(this, '${escapeHtml(imagePath)}', '${escapeHtml(itemName)}', '${escapeHtml(room)}')" 
+             onmouseleave="hideHoverPreview()" 
+             title="View Image" alt="View Image">
+      </div>
+    </td>
+    <td>${escapeHtml(room)}</td>
+    <td>${escapeHtml(description)}</td>
+    <td style="text-align: center;">${escapeHtml(quantity)}</td>
+    <td>${escapeHtml(remarks)}</td>
+  </tr>
+`;
   });
   
   tbody.innerHTML = html;
@@ -628,6 +657,175 @@ document.addEventListener('DOMContentLoaded', function() {
   setupPagination();
 });
 
+// ====== HOVER PREVIEW SYSTEM ======
+let hoverPreviewElement = null;
+let hoverPreviewTimeout = null;
+
+function showHoverPreview(eyeIcon, imagePath, itemName, room) {
+  // Clear any existing timeout
+  if (hoverPreviewTimeout) {
+    clearTimeout(hoverPreviewTimeout);
+  }
+  
+  // Remove existing preview
+  hideHoverPreview();
+  
+  // Create preview element
+  hoverPreviewElement = document.createElement('div');
+  hoverPreviewElement.className = 'hover-preview';
+  
+  let imageHtml = '';
+  if (imagePath) {
+    imageHtml = `<img src="${imagePath}" class="hover-preview-image" alt="${itemName}">`;
+  } else {
+    imageHtml = `<div class="hover-preview-image" style="display: flex; align-items: center; justify-content: center; color: #999;">
+      <span style="font-size: 48px;">📷</span>
+    </div>`;
+  }
+  
+  hoverPreviewElement.innerHTML = `
+    ${imageHtml}
+    <div class="hover-preview-details">
+      <div><span class="label">Item:</span> ${itemName}</div>
+      <div><span class="label">Room:</span> ${room}</div>
+    </div>
+  `;
+  
+  // Add hover listeners to keep preview visible
+  hoverPreviewElement.addEventListener('mouseenter', () => {
+    if (hoverPreviewTimeout) {
+      clearTimeout(hoverPreviewTimeout);
+      hoverPreviewTimeout = null;
+    }
+  });
+  
+  hoverPreviewElement.addEventListener('mouseleave', () => {
+    hideHoverPreview();
+  });
+  
+  document.body.appendChild(hoverPreviewElement);
+  
+  // Position the preview
+  const iconRect = eyeIcon.getBoundingClientRect();
+  hoverPreviewElement.style.position = 'fixed';
+  
+  // Position above the eye icon with some spacing
+  const previewTop = iconRect.top - hoverPreviewElement.offsetHeight - 10;
+  
+  // If there's not enough space above, position below
+  if (previewTop < 10) {
+    hoverPreviewElement.style.top = (iconRect.bottom + 10) + 'px';
+  } else {
+    hoverPreviewElement.style.top = previewTop + 'px';
+  }
+  
+  // Center horizontally relative to the eye icon
+  hoverPreviewElement.style.left = (iconRect.left - (hoverPreviewElement.offsetWidth / 2) + (iconRect.width / 2)) + 'px';
+  
+  // Show immediately
+  setTimeout(() => {
+    if (hoverPreviewElement) {
+      hoverPreviewElement.classList.add('show');
+    }
+  }, 50);
+}
+
+function hideHoverPreview() {
+  if (hoverPreviewElement) {
+    hoverPreviewElement.remove();
+    hoverPreviewElement = null;
+  }
+  if (hoverPreviewTimeout) {
+    clearTimeout(hoverPreviewTimeout);
+    hoverPreviewTimeout = null;
+  }
+}
+
+// ====== VIEW-ONLY IMAGE MODAL ======
+function openImageModal(itemId, itemName, room, imagePath, event) {
+  event.stopPropagation();
+  
+  // Create modal if it doesn't exist
+  let modal = document.getElementById('imageModal');
+  if (!modal) {
+    const modalHTML = `
+      <div id="imageModal" class="image-modal">
+        <div class="image-modal-content">
+          <div class="image-modal-header">
+            <h3 id="imageModalTitle">Item Image</h3>
+            <button class="image-modal-close" onclick="closeImageModal()">×</button>
+          </div>
+          <div class="image-modal-body">
+            <div id="imagePreviewContainer" class="image-preview-container">
+              <img id="previewImage" class="preview-image" alt="Item image">
+              <div id="noImagePlaceholder" class="no-image-placeholder" style="display: flex; flex-direction: column;">
+                <div class="icon">📷</div>
+                <p><strong>No image available</strong></p>
+              </div>
+            </div>
+            
+            <div class="item-details">
+              <div class="item-detail-row">
+                <span class="item-detail-label">Item:</span>
+                <span class="item-detail-value" id="modalItemName">-</span>
+              </div>
+              <div class="item-detail-row">
+                <span class="item-detail-label">Room:</span>
+                <span class="item-detail-value" id="modalItemRoom">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Close modal when clicking outside
+    document.getElementById('imageModal').addEventListener('click', function(e) {
+      if (e.target.id === 'imageModal') {
+        closeImageModal();
+      }
+    });
+    
+    modal = document.getElementById('imageModal');
+  }
+  
+  // Update modal content
+  const modalTitle = document.getElementById('imageModalTitle');
+  const itemNameEl = document.getElementById('modalItemName');
+  const itemRoomEl = document.getElementById('modalItemRoom');
+  const previewContainer = document.getElementById('imagePreviewContainer');
+  const previewImage = document.getElementById('previewImage');
+  const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+  
+  modalTitle.textContent = 'Item Image';
+  itemNameEl.textContent = itemName;
+  itemRoomEl.textContent = room;
+  
+  // Show or hide image/placeholder
+  if (imagePath) {
+    previewImage.src = imagePath;
+    previewImage.style.display = 'block';
+    noImagePlaceholder.style.display = 'none';
+    previewContainer.classList.add('has-image');
+  } else {
+    previewImage.style.display = 'none';
+    noImagePlaceholder.style.display = 'flex';
+    previewContainer.classList.remove('has-image');
+  }
+  
+  modal.classList.add('show');
+}
+
+function closeImageModal() {
+  const modal = document.getElementById('imageModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+
 </script>
 
 <style>
@@ -637,6 +835,26 @@ document.addEventListener('DOMContentLoaded', function() {
     .status-rejected { background: #f8d7da; color: #721c24; }
     .reservation-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
     
+    /* ====== SORT BUTTON ====== */
+#sortTable {
+  background: #242424 !important;
+  color: #FFD600;
+  border: 2px solid #212121;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#sortTable:hover {
+  background: #FFD600 !important;
+  color: #242424;
+}
+
+
     /* ====== PAGINATION STYLES CSS====== */
     .pagination-container {
       margin-top: 20px;
@@ -730,6 +948,223 @@ document.addEventListener('DOMContentLoaded', function() {
       border-radius: 4px;
       background: white;
     }
+
+/* ====== EYE ICON STYLES ====== */
+.item-cell-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+
+.item-name-text {
+  flex: 1;
+}
+
+.eye-icon {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  padding: 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.eye-icon:hover {
+  opacity: 1;
+  background: rgba(255, 214, 0, 0.2);
+  transform: scale(1.15);
+}
+
+/* ====== HOVER PREVIEW ====== */
+.hover-preview {
+  position: fixed;
+  z-index: 9999;
+  background: white;
+  border: 3px solid #FFD600;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-width: 250px;
+  max-width: 300px;
+}
+
+.hover-preview.show {
+  opacity: 1;
+}
+
+.hover-preview-image {
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.hover-preview-details {
+  font-size: 14px;
+}
+
+.hover-preview-details .label {
+  font-weight: bold;
+  color: #1e1e1e;
+}
+
+/* ====== IMAGE MODAL (VIEW ONLY) ====== */
+.image-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.image-modal.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+.image-modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
+              0 0 0 3px #FFD600;
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.image-modal.show .image-modal-content {
+  transform: scale(1);
+}
+
+.image-modal-header {
+  background: linear-gradient(135deg, #FFD600 0%, #f0c000 100%);
+  color: #1e1e1e;
+  padding: 20px 25px;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.image-modal-header h3 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.image-modal-close {
+  background: #1e1e1e;
+  color: #FFD600;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.image-modal-close:hover {
+  background: #FFD600;
+  color: #1e1e1e;
+  transform: rotate(90deg);
+}
+
+.image-modal-body {
+  padding: 30px;
+}
+
+.image-preview-container {
+  width: 100%;
+  height: 300px;
+  background: #f5f5f5;
+  border: 3px solid #FFD600;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.image-preview-container.has-image {
+  background: white;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.no-image-placeholder {
+  text-align: center;
+  color: #999;
+}
+
+.no-image-placeholder .icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+  color: #ddd;
+}
+
+.no-image-placeholder p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.item-details {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 4px solid #FFD600;
+}
+
+.item-detail-row {
+  display: flex;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.item-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.item-detail-label {
+  font-weight: bold;
+  color: #1e1e1e;
+  min-width: 80px;
+}
+
+.item-detail-value {
+  color: #666;
+  flex: 1;
+}
+
 </style>
 
 

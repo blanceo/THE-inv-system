@@ -52,7 +52,7 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
     <input type="text" id="searchInput" placeholder="Search equipment..." onkeyup="searchTable()">
   </div>
 
-  <button onclick="sortTable()">Sort A–Z</button>
+  <button id="sortTable" onclick="sortTable()">Sort A–Z</button>
   <button id="addItemBtn" type="button">+ Add New Item</button>
   <button id="saveNewItemBtn" type="button" style="display:none;">Save New Item</button>
 

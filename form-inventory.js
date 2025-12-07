@@ -227,9 +227,10 @@ function renderTable() {
       <td>
         <div class="item-cell-container">
           <span class="item-name-text">${escapeHtml(item)}</span>
-          <span class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(item)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" title="View/Upload Image">
-           o
-          </span>
+          <img src="eye.png" class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(item)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
+     onmouseenter="showHoverPreview(this, '${escapeHtml(imagePath)}', '${escapeHtml(item)}', '${escapeHtml(room)}')" 
+     onmouseleave="hideHoverPreview()" 
+     title="View/Upload Image" alt="View Image">
         </div>
       </td>
       <td>${escapeHtml(room)}</td>
@@ -245,9 +246,7 @@ function renderTable() {
   inventoryBody.innerHTML = rowsHtml;
   updatePaginationInfo();
   updatePaginationButtons(totalPages);
-  
-  // Add hover preview listeners
-  addHoverPreviewListeners();
+
 }
 
 // Open image modal
@@ -457,31 +456,15 @@ function deleteImage() {
   );
 }
 
-// Add hover preview listeners
-function addHoverPreviewListeners() {
-  const rows = document.querySelectorAll('#inventoryTable tbody tr');
-  
-  rows.forEach(row => {
-    row.addEventListener('mouseenter', function() {
-      if (this.classList.contains('selected-row')) {
-        showHoverPreview(this);
-      }
-    });
-    
-    row.addEventListener('mouseleave', function() {
-      hideHoverPreview();
-    });
-  });
-}
-
+// Show hover preview when hovering over eye icon
 let hoverPreviewElement = null;
+let hoverPreviewTimeout = null;
 
-function showHoverPreview(row) {
-  const imagePath = row.dataset.image;
-  const itemCell = row.querySelector('td:first-child');
-  const itemName = itemCell.querySelector('.item-name-text').textContent;
-  const roomCell = row.querySelector('td:nth-child(2)');
-  const room = roomCell.textContent;
+function showHoverPreview(eyeIcon, imagePath, itemName, room) {
+  // Clear any existing timeout
+  if (hoverPreviewTimeout) {
+    clearTimeout(hoverPreviewTimeout);
+  }
   
   // Remove existing preview
   hideHoverPreview();
@@ -507,26 +490,53 @@ function showHoverPreview(row) {
     </div>
   `;
   
+  // Add hover listeners to keep preview visible
+  hoverPreviewElement.addEventListener('mouseenter', () => {
+    if (hoverPreviewTimeout) {
+      clearTimeout(hoverPreviewTimeout);
+      hoverPreviewTimeout = null;
+    }
+  });
+  
+  hoverPreviewElement.addEventListener('mouseleave', () => {
+    hideHoverPreview();
+  });
+  
   document.body.appendChild(hoverPreviewElement);
   
   // Position the preview
-  const cellRect = itemCell.getBoundingClientRect();
+  const iconRect = eyeIcon.getBoundingClientRect();
   hoverPreviewElement.style.position = 'fixed';
-  hoverPreviewElement.style.top = (cellRect.top - hoverPreviewElement.offsetHeight - 10) + 'px';
-  hoverPreviewElement.style.left = cellRect.left + 'px';
   
-  // Show with delay
+  // Position above the eye icon with some spacing
+  const previewTop = iconRect.top - hoverPreviewElement.offsetHeight - 10;
+  
+  // If there's not enough space above, position below
+  if (previewTop < 10) {
+    hoverPreviewElement.style.top = (iconRect.bottom + 10) + 'px';
+  } else {
+    hoverPreviewElement.style.top = previewTop + 'px';
+  }
+  
+  // Center horizontally relative to the eye icon
+  hoverPreviewElement.style.left = (iconRect.left - (hoverPreviewElement.offsetWidth / 2) + (iconRect.width / 2)) + 'px';
+  
+  // Show immediately
   setTimeout(() => {
     if (hoverPreviewElement) {
       hoverPreviewElement.classList.add('show');
     }
-  }, 300);
+  }, 50);
 }
 
 function hideHoverPreview() {
   if (hoverPreviewElement) {
     hoverPreviewElement.remove();
     hoverPreviewElement = null;
+  }
+  if (hoverPreviewTimeout) {
+    clearTimeout(hoverPreviewTimeout);
+    hoverPreviewTimeout = null;
   }
 }
 
@@ -966,9 +976,33 @@ function startInlineEdit(cell, rowId) {
   cell.appendChild(inputEl);
   inputEl.focus();
 
-  function finishSave() {
+function finishSave() {
   const newVal = inputEl.value.trim();
-  cell.textContent = newVal;
+  const colIndex = cell.cellIndex;
+  
+  // Check if this is the first column (Item column with eye icon)
+  if (colIndex === 0) {
+    // Don't just set textContent, rebuild the cell content with eye icon
+    const row = cell.parentElement;
+    const imagePath = row.dataset.image || '';
+    const rowId = row.dataset.id;
+    const roomCell = row.cells[1]; // Get room from second column
+    const room = roomCell.textContent.trim();
+    
+    cell.innerHTML = `
+      <div class="item-cell-container">
+        <span class="item-name-text">${escapeHtml(newVal)}</span>
+        <img src="eye.png" class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(newVal)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
+             onmouseenter="showHoverPreview(this, '${escapeHtml(imagePath)}', '${escapeHtml(newVal)}', '${escapeHtml(room)}')" 
+             onmouseleave="hideHoverPreview()" 
+             title="View/Upload Image" alt="View Image">
+      </div>
+    `;
+  } else {
+    // For other columns, just set the text content
+    cell.textContent = newVal;
+  }
+  
   cell.classList.remove('editing', 'editing-cell');
 
   // SEND TO SERVER
