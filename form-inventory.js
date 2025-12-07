@@ -191,6 +191,13 @@ function formatCell(v) {
   return String(v);
 }
 
+// ====== IMAGE UPLOAD SYSTEM ======
+// Add this to your form-inventory.js file
+
+let currentImageItemId = null;
+let currentImageData = null;
+
+// Update renderTable to include eye icons
 function renderTable() {
   if (!filteredData.length) {
     inventoryBody.innerHTML = '<tr><td colspan="8">No records found.</td></tr>';
@@ -198,7 +205,6 @@ function renderTable() {
     return;
   }
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, filteredData.length);
@@ -213,9 +219,19 @@ function renderTable() {
     const ending = formatCell(getProp(row, 'Ending'));
     const pull = formatCell(getProp(row, 'PullOut') || getProp(row, 'Pull-out') || '');
     const remarks = formatCell(getProp(row, 'Remarks'));
+    const rowId = row.id || row.ID || row.item_id || getProp(row, 'id') || getProp(row, 'ID');
+    const imagePath = getProp(row, 'image_path') || '';
+    
     return `
-    <tr data-id="${row.id}">
-      <td>${escapeHtml(item)}</td>
+    <tr data-id="${rowId}" data-image="${escapeHtml(imagePath)}">
+      <td>
+        <div class="item-cell-container">
+          <span class="item-name-text">${escapeHtml(item)}</span>
+          <span class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(item)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" title="View/Upload Image">
+           o
+          </span>
+        </div>
+      </td>
       <td>${escapeHtml(room)}</td>
       <td>${escapeHtml(desc)}</td>
       <td>${escapeHtml(beg)}</td>
@@ -229,7 +245,364 @@ function renderTable() {
   inventoryBody.innerHTML = rowsHtml;
   updatePaginationInfo();
   updatePaginationButtons(totalPages);
+  
+  // Add hover preview listeners
+  addHoverPreviewListeners();
 }
+
+// Open image modal
+function openImageModal(itemId, itemName, room, imagePath, event) {
+  event.stopPropagation(); // Prevent row selection
+  
+  currentImageItemId = itemId;
+  
+  const modal = document.getElementById('imageModal');
+  const modalTitle = document.getElementById('imageModalTitle');
+  const itemNameEl = document.getElementById('modalItemName');
+  const itemRoomEl = document.getElementById('modalItemRoom');
+  const previewContainer = document.getElementById('imagePreviewContainer');
+  const previewImage = document.getElementById('previewImage');
+  const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+  const deleteBtn = document.getElementById('deleteImageBtn');
+  
+  modalTitle.textContent = 'Item Image';
+  itemNameEl.textContent = itemName;
+  itemRoomEl.textContent = room;
+  
+  // Show or hide image/placeholder
+  if (imagePath) {
+    previewImage.src = imagePath;
+    previewImage.style.display = 'block';
+    noImagePlaceholder.style.display = 'none';
+    previewContainer.classList.add('has-image');
+    deleteBtn.style.display = 'block';
+  } else {
+    previewImage.style.display = 'none';
+    noImagePlaceholder.style.display = 'flex';
+    previewContainer.classList.remove('has-image');
+    deleteBtn.style.display = 'none';
+  }
+  
+  modal.classList.add('show');
+}
+
+// Close image modal
+function closeImageModal() {
+  const modal = document.getElementById('imageModal');
+  modal.classList.remove('show');
+  currentImageItemId = null;
+  
+  // Reset file input
+  const fileInput = document.getElementById('imageFileInput');
+  const fileNameDisplay = document.getElementById('fileNameDisplay');
+  fileInput.value = '';
+  fileNameDisplay.textContent = 'No file selected';
+}
+
+// Handle file selection
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  const fileNameDisplay = document.getElementById('fileNameDisplay');
+  const uploadBtn = document.getElementById('uploadImageBtn');
+  
+  if (file) {
+    // Validate file
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    
+    if (!allowedTypes.includes(file.type)) {
+      showNotification('Invalid file type. Only JPG, PNG, and WebP are allowed.', 'error');
+      event.target.value = '';
+      fileNameDisplay.textContent = 'No file selected';
+      return;
+    }
+    
+    if (file.size > maxSize) {
+      showNotification('File is too large. Maximum size is 2MB.', 'error');
+      event.target.value = '';
+      fileNameDisplay.textContent = 'No file selected';
+      return;
+    }
+    
+    fileNameDisplay.textContent = file.name;
+    uploadBtn.disabled = false;
+  } else {
+    fileNameDisplay.textContent = 'No file selected';
+    uploadBtn.disabled = true;
+  }
+}
+
+// Upload image
+function uploadImage() {
+  const fileInput = document.getElementById('imageFileInput');
+  const file = fileInput.files[0];
+  const uploadBtn = document.getElementById('uploadImageBtn');
+  
+  if (!file || !currentImageItemId) {
+    showNotification('Please select a file', 'warning');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('item_id', currentImageItemId);
+  
+  // Show loading state
+  const originalText = uploadBtn.textContent;
+  uploadBtn.innerHTML = '<span class="loading-spinner"></span> Uploading...';
+  uploadBtn.disabled = true;
+  
+  fetch('upload_image.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showNotification(data.message, 'success');
+      
+      // Update preview
+      const previewImage = document.getElementById('previewImage');
+      const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+      const previewContainer = document.getElementById('imagePreviewContainer');
+      const deleteBtn = document.getElementById('deleteImageBtn');
+      
+      previewImage.src = data.image_path + '?t=' + new Date().getTime(); // Cache bust
+      previewImage.style.display = 'block';
+      noImagePlaceholder.style.display = 'none';
+      previewContainer.classList.add('has-image');
+      deleteBtn.style.display = 'block';
+      
+      // Update row data
+      const row = document.querySelector(`tr[data-id="${currentImageItemId}"]`);
+      if (row) {
+        row.dataset.image = data.image_path;
+      }
+      
+      // Reset file input
+      fileInput.value = '';
+      document.getElementById('fileNameDisplay').textContent = 'No file selected';
+      
+      // Reload data to get updated image paths
+      loadJSON();
+    } else {
+      showNotification(data.message || 'Upload failed', 'error');
+    }
+    
+    uploadBtn.textContent = originalText;
+    uploadBtn.disabled = false;
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showNotification('Upload failed: ' + error.message, 'error');
+    uploadBtn.textContent = originalText;
+    uploadBtn.disabled = false;
+  });
+}
+
+// Delete image
+function deleteImage() {
+  if (!currentImageItemId) return;
+  
+  showConfirmation(
+    'Are you sure you want to delete this image?',
+    () => {
+      const deleteBtn = document.getElementById('deleteImageBtn');
+      const originalText = deleteBtn.textContent;
+      deleteBtn.innerHTML = '<span class="loading-spinner"></span> Deleting...';
+      deleteBtn.disabled = true;
+      
+      fetch('delete_image.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: currentImageItemId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification(data.message, 'success');
+          
+          // Update preview
+          const previewImage = document.getElementById('previewImage');
+          const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+          const previewContainer = document.getElementById('imagePreviewContainer');
+          
+          previewImage.style.display = 'none';
+          noImagePlaceholder.style.display = 'flex';
+          previewContainer.classList.remove('has-image');
+          deleteBtn.style.display = 'none';
+          
+          // Update row data
+          const row = document.querySelector(`tr[data-id="${currentImageItemId}"]`);
+          if (row) {
+            row.dataset.image = '';
+          }
+          
+          // Reload data
+          loadJSON();
+        } else {
+          showNotification(data.message || 'Delete failed', 'error');
+        }
+        
+        deleteBtn.textContent = originalText;
+        deleteBtn.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showNotification('Delete failed: ' + error.message, 'error');
+        deleteBtn.textContent = originalText;
+        deleteBtn.disabled = false;
+      });
+    }
+  );
+}
+
+// Add hover preview listeners
+function addHoverPreviewListeners() {
+  const rows = document.querySelectorAll('#inventoryTable tbody tr');
+  
+  rows.forEach(row => {
+    row.addEventListener('mouseenter', function() {
+      if (this.classList.contains('selected-row')) {
+        showHoverPreview(this);
+      }
+    });
+    
+    row.addEventListener('mouseleave', function() {
+      hideHoverPreview();
+    });
+  });
+}
+
+let hoverPreviewElement = null;
+
+function showHoverPreview(row) {
+  const imagePath = row.dataset.image;
+  const itemCell = row.querySelector('td:first-child');
+  const itemName = itemCell.querySelector('.item-name-text').textContent;
+  const roomCell = row.querySelector('td:nth-child(2)');
+  const room = roomCell.textContent;
+  
+  // Remove existing preview
+  hideHoverPreview();
+  
+  // Create preview element
+  hoverPreviewElement = document.createElement('div');
+  hoverPreviewElement.className = 'hover-preview';
+  
+  let imageHtml = '';
+  if (imagePath) {
+    imageHtml = `<img src="${imagePath}" class="hover-preview-image" alt="${itemName}">`;
+  } else {
+    imageHtml = `<div class="hover-preview-image" style="display: flex; align-items: center; justify-content: center; color: #999;">
+      <span style="font-size: 48px;">📷</span>
+    </div>`;
+  }
+  
+  hoverPreviewElement.innerHTML = `
+    ${imageHtml}
+    <div class="hover-preview-details">
+      <div><span class="label">Item:</span> ${itemName}</div>
+      <div><span class="label">Room:</span> ${room}</div>
+    </div>
+  `;
+  
+  document.body.appendChild(hoverPreviewElement);
+  
+  // Position the preview
+  const cellRect = itemCell.getBoundingClientRect();
+  hoverPreviewElement.style.position = 'fixed';
+  hoverPreviewElement.style.top = (cellRect.top - hoverPreviewElement.offsetHeight - 10) + 'px';
+  hoverPreviewElement.style.left = cellRect.left + 'px';
+  
+  // Show with delay
+  setTimeout(() => {
+    if (hoverPreviewElement) {
+      hoverPreviewElement.classList.add('show');
+    }
+  }, 300);
+}
+
+function hideHoverPreview() {
+  if (hoverPreviewElement) {
+    hoverPreviewElement.remove();
+    hoverPreviewElement = null;
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Create image modal HTML if it doesn't exist
+  if (!document.getElementById('imageModal')) {
+    const modalHTML = `
+      <div id="imageModal" class="image-modal">
+        <div class="image-modal-content">
+          <div class="image-modal-header">
+            <h3 id="imageModalTitle">Item Image</h3>
+            <button class="image-modal-close" onclick="closeImageModal()">×</button>
+          </div>
+          <div class="image-modal-body">
+            <div id="imagePreviewContainer" class="image-preview-container">
+              <img id="previewImage" class="preview-image" alt="Item image">
+              <div id="noImagePlaceholder" class="no-image-placeholder" style="display: flex; flex-direction: column;">
+                <div class="icon">📷</div>
+                <p><strong>No image uploaded</strong></p>
+                <p>Upload an image below</p>
+              </div>
+            </div>
+            
+            <div class="item-details">
+              <div class="item-detail-row">
+                <span class="item-detail-label">Item:</span>
+                <span class="item-detail-value" id="modalItemName">-</span>
+              </div>
+              <div class="item-detail-row">
+                <span class="item-detail-label">Room:</span>
+                <span class="item-detail-value" id="modalItemRoom">-</span>
+              </div>
+            </div>
+            
+            <div class="image-upload-section">
+              <div class="upload-form">
+                <div class="file-input-wrapper">
+                  <input type="file" id="imageFileInput" accept="image/jpeg,image/jpg,image/png,image/webp" onchange="handleFileSelect(event)">
+                  <label for="imageFileInput" class="file-input-label">
+                    <span>📁</span>
+                    <span>Choose Image File</span>
+                  </label>
+                </div>
+                
+                <div id="fileNameDisplay" class="file-name-display">No file selected</div>
+                
+                <div class="upload-buttons">
+                  <button id="uploadImageBtn" class="upload-btn" onclick="uploadImage()" disabled>
+                    Upload Image
+                  </button>
+                  <button id="deleteImageBtn" class="delete-image-btn" onclick="deleteImage()" style="display: none;">
+                    Delete Image
+                  </button>
+                </div>
+                
+                <div class="upload-info">
+                  Supported formats: JPG, PNG, WebP • Max size: 2MB
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Close modal when clicking outside
+    document.getElementById('imageModal').addEventListener('click', function(e) {
+      if (e.target.id === 'imageModal') {
+        closeImageModal();
+      }
+    });
+  }
+});
 
 function updatePaginationInfo() {
   if (!filteredData.length) {
