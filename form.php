@@ -23,10 +23,18 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
 </head>
 <body>
 
+
 <header>
-  <h1>LabTrack - SHS Laboratory Inventory</h1>  
-  <div style="float: center;">
-    Welcome, <?php echo $userName; ?>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1 style="margin: 1%;">LabTrack - SHS Laboratory Inventory</h1>
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div style="text-align: right;">
+        Welcome, <?php echo $userName; ?>
+      </div>
+      <button id="layoutToggle" onclick="toggleLayout()" style="background: rgba(255,214,0,0.9); color: #1e1e1e; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px;">
+        Switch View
+      </button>
+    </div>
   </div>
 </header>
 
@@ -590,6 +598,42 @@ document.addEventListener('DOMContentLoaded', function() {
   // Setup reservations pagination
   setupReservationsPagination();
 });
+
+let isCompactLayout = false;
+
+function toggleLayout() {
+  const header = document.querySelector('header');
+  const nav = document.querySelector('nav');
+  const app = document.getElementById('app');
+  const toggleBtn = document.getElementById('layoutToggle');
+  
+  isCompactLayout = !isCompactLayout;
+  
+  if (isCompactLayout) {
+    // Sidebar layout
+    document.body.classList.add('compact-layout');
+    toggleBtn.innerHTML = '⚡ Standard View'; // Changed
+    toggleBtn.style.background = 'rgba(255,255,255,0.9)';
+  } else {
+    // Standard layout
+    document.body.classList.remove('compact-layout');
+    toggleBtn.innerHTML = '⚡ Sidebar View'; // Changed
+    toggleBtn.style.background = 'rgba(255,214,0,0.9)';
+  }
+  
+  // Save preference
+  localStorage.setItem('layoutPreference', isCompactLayout ? 'compact' : 'standard');
+}
+
+// Load saved preference on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const savedLayout = localStorage.getItem('layoutPreference');
+  if (savedLayout === 'compact') {
+    toggleLayout();
+  }
+});
+
+
 </script>
 
 <!-- link to the new file that handles inventory display -->
