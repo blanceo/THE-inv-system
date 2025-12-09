@@ -825,6 +825,226 @@ function closeImageModal() {
   }
 }
 
+// ====== AUTO-SUGGEST ITEM INPUT ======
+
+// Add this to your existing JavaScript in teacher_dashboard.php
+
+// Store inventory items for autocomplete
+let inventoryItems = [];
+
+// Load inventory items for autocomplete when page loads
+function loadInventoryForAutocomplete() {
+  fetch('api/get_inventory.php')
+    .then(response => response.json())
+    .then(data => {
+      inventoryItems = data.map(item => ({
+        name: item.item || item.Item,
+        room: item.room || item.Room,
+        description: item.description || item.Description
+      }));
+      console.log('Loaded', inventoryItems.length, 'items for autocomplete');
+    })
+    .catch(error => {
+      console.error('Error loading inventory for autocomplete:', error);
+    });
+}
+
+// Initialize autocomplete on the item input
+function initializeAutocomplete() {
+  const input = document.getElementById('reserveItem');
+  
+  // Disable browser's native autocomplete
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('autocorrect', 'off');
+  input.setAttribute('autocapitalize', 'off');
+  input.setAttribute('spellcheck', 'false');
+  
+  const suggestionsContainer = document.createElement('div');
+  suggestionsContainer.className = 'autocomplete-suggestions';
+  suggestionsContainer.id = 'autocompleteSuggestions';
+  input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+
+  // Listen for input changes
+  input.addEventListener('input', function() {
+    const value = this.value.toLowerCase().trim();
+    
+    // Clear suggestions if input is empty
+    if (!value) {
+      suggestionsContainer.innerHTML = '';
+      suggestionsContainer.style.display = 'none';
+      return;
+    }
+
+    // Filter inventory items that match the input
+    const matches = inventoryItems.filter(item => 
+      item.name.toLowerCase().includes(value)
+    ).slice(0, 8); // Limit to 8 suggestions
+
+    // Display suggestions
+    if (matches.length > 0) {
+      let html = '';
+      matches.forEach(item => {
+        html += `
+          <div class="autocomplete-item" data-name="${escapeHtml(item.name)}">
+            <div class="autocomplete-item-name">${highlightMatch(item.name, value)}</div>
+            <div class="autocomplete-item-details">
+              <span class="autocomplete-room">${escapeHtml(item.room)}</span>
+              ${item.description ? `<span class="autocomplete-desc">${escapeHtml(item.description)}</span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      suggestionsContainer.innerHTML = html;
+      suggestionsContainer.style.display = 'block';
+
+      // Add click handlers to suggestions
+      document.querySelectorAll('.autocomplete-item').forEach(suggestionEl => {
+        suggestionEl.addEventListener('click', function() {
+          input.value = this.getAttribute('data-name');
+          suggestionsContainer.innerHTML = '';
+          suggestionsContainer.style.display = 'none';
+          input.focus();
+        });
+      });
+    } else {
+      suggestionsContainer.innerHTML = `
+        <div class="autocomplete-no-match">
+          No matches found. You can still type a custom item name.
+        </div>
+      `;
+      suggestionsContainer.style.display = 'block';
+    }
+  });
+
+  // Close suggestions when clicking outside
+  document.addEventListener('click', function(e) {
+    if (e.target !== input && !suggestionsContainer.contains(e.target)) {
+      suggestionsContainer.style.display = 'none';
+    }
+  });
+
+  // Handle keyboard navigation
+  input.addEventListener('keydown', function(e) {
+    const items = suggestionsContainer.querySelectorAll('.autocomplete-item');
+    const activeItem = suggestionsContainer.querySelector('.autocomplete-item.active');
+    let currentIndex = Array.from(items).indexOf(activeItem);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (currentIndex < items.length - 1) {
+        if (activeItem) activeItem.classList.remove('active');
+        items[currentIndex + 1].classList.add('active');
+      } else if (items.length > 0) {
+        if (activeItem) activeItem.classList.remove('active');
+        items[0].classList.add('active');
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentIndex > 0) {
+        activeItem.classList.remove('active');
+        items[currentIndex - 1].classList.add('active');
+      } else if (items.length > 0) {
+        if (activeItem) activeItem.classList.remove('active');
+        items[items.length - 1].classList.add('active');
+      }
+    } else if (e.key === 'Enter' && activeItem) {
+      e.preventDefault();
+      input.value = activeItem.getAttribute('data-name');
+      suggestionsContainer.style.display = 'none';
+    } else if (e.key === 'Escape') {
+      suggestionsContainer.style.display = 'none';
+    }
+  });
+}
+
+// Highlight matching text
+function highlightMatch(text, query) {
+  const index = text.toLowerCase().indexOf(query.toLowerCase());
+  if (index === -1) return escapeHtml(text);
+  
+  const before = text.substring(0, index);
+  const match = text.substring(index, index + query.length);
+  const after = text.substring(index + query.length);
+  
+  return `${escapeHtml(before)}<strong class="highlight">${escapeHtml(match)}</strong>${escapeHtml(after)}`;
+}
+
+// ====== CALENDAR POPUP ======
+
+// Function to open calendar event details popup
+function openCalendarPopup(event) {
+  const modal = document.createElement('div');
+  modal.className = 'calendar-modal';
+  modal.id = 'calendarModal';
+  
+  modal.innerHTML = `
+    <div class="calendar-modal-content">
+      <div class="calendar-modal-header">
+        <h3>📅 Reservation Details</h3>
+        <button class="calendar-modal-close" onclick="closeCalendarPopup()">×</button>
+      </div>
+      <div class="calendar-modal-body">
+        <div class="calendar-detail-row">
+          <span class="calendar-detail-label">Item:</span>
+          <span class="calendar-detail-value">${escapeHtml(event.item_name)}</span>
+        </div>
+        <div class="calendar-detail-row">
+          <span class="calendar-detail-label">Teacher:</span>
+          <span class="calendar-detail-value">${escapeHtml(event.teacher_name)}</span>
+        </div>
+        <div class="calendar-detail-row">
+          <span class="calendar-detail-label">Date:</span>
+          <span class="calendar-detail-value">${new Date(event.date_needed).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
+        <div class="calendar-detail-row">
+          <span class="calendar-detail-label">Purpose:</span>
+          <span class="calendar-detail-value">${escapeHtml(event.purpose || 'N/A')}</span>
+        </div>
+        <div class="calendar-detail-row">
+          <span class="calendar-detail-label">Status:</span>
+          <span class="calendar-detail-value">
+            <span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span>
+          </span>
+        </div>
+        <div class="calendar-detail-row">
+          <span class="calendar-detail-label">Submitted:</span>
+          <span class="calendar-detail-value">${new Date(event.created_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Show modal with animation
+  setTimeout(() => modal.classList.add('show'), 10);
+  
+  // Close on backdrop click
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      closeCalendarPopup();
+    }
+  });
+}
+
+function closeCalendarPopup() {
+  const modal = document.getElementById('calendarModal');
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.remove(), 300);
+  }
+}
+
+// ====== INITIALIZATION ======
+
+// Add to your existing DOMContentLoaded event listener:
+document.addEventListener('DOMContentLoaded', function() {
+  loadInventoryForAutocomplete();
+  initializeAutocomplete();
+  loadMyReservations();
+  setupPagination();
+});
+
 
 </script>
 
@@ -1164,6 +1384,98 @@ function closeImageModal() {
   color: #666;
   flex: 1;
 }
+
+/* ====== AUTOCOMPLETE SUGGESTIONS ====== */
+.autocomplete-suggestions {
+  position: absolute;
+  background: white;
+  border: 2px solid #FFD600;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  margin-top: 5px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.autocomplete-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background: linear-gradient(135deg, #FFD600 0%, #f0c000 100%);
+  color: #1e1e1e;
+}
+
+.autocomplete-item-name {
+  font-weight: bold;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.autocomplete-item-details {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  gap: 10px;
+}
+
+.autocomplete-item:hover .autocomplete-item-details,
+.autocomplete-item.active .autocomplete-item-details {
+  color: #1e1e1e;
+}
+
+.autocomplete-room {
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.autocomplete-item:hover .autocomplete-room,
+.autocomplete-item.active .autocomplete-room {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-desc {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.autocomplete-no-match {
+  padding: 15px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.highlight {
+  background: #FFD600;
+  color: #1e1e1e;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Make the input container position relative */
+.reservation-form label {
+  position: relative;
+  display: block;
+}
+
 
 </style>
 
