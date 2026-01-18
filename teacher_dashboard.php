@@ -34,50 +34,68 @@ require_once 'check_session.php';
 </nav>
 
   <section id="reservations" class="active">
-    <h2>Reserve Equipment</h2>
-    
-    <div class="reservation-form">
-      <form id="reservationForm">
-        <label><strong>Item Name:</strong></label>
-        <input 
-        type="text" 
-        id="reserveItem" 
-        name="item_name" 
-        placeholder="Enter equipment name" 
-        required style="width: 300px; padding: 8px;">
-        
-        <br><br>
-        
-        <label><strong>Date Needed:</strong></label>
-        <input 
+  <h2>Reserve Equipment</h2>
+  
+  <div class="reservation-form">
+    <form id="reservationForm">
+      <div id="itemsContainer">
+        <div class="item-input-group">
+          <label><strong>Item Name:</strong></label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input 
+              type="text" 
+              class="item-name-input" 
+              name="item_names[]" 
+              placeholder="Enter equipment name" 
+              required 
+              style="flex: 1; padding: 8px;">
+            <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="display: none;">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+      
+<button 
+  type="button" 
+  id="addItemBtn" 
+  onclick="addItemInput()"
+  style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; margin-top: 8px; font-size:8px;  ">
+  + Add Another Item
+</button>
+
+      <br>
+      
+      <label><strong>Date Needed:</strong></label>
+      <input 
         type="date" 
         id="reserveDate" 
         name="date_needed" 
         required style="padding: 8px;">
-        
-        <br><br>
-        
-        <label><strong>Purpose/Activity:</strong></label>
-        <input 
+      
+      <br><br>
+      
+      <label><strong>Purpose/Activity:</strong></label>
+      <input 
         type="text" 
         id="reservePurpose" 
         name="purpose" 
         placeholder="e.g., Chemistry Lab, Biology Experiment" 
         style="width: 300px; padding: 8px;">
-        
-        <br><br>
-        
-        <button 
+      
+      <br><br>
+      
+      <button 
         type="submit" 
         id="reserveBtn" 
-        style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
-          Submit Reservation Request
-        </button>
-      </form>
-    </div>
+        style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight:bold">
+        Submit Reservation Request
+      </button>
+    </form>
+  </div>
 
-    <div id="reserveMessage" style="margin-top: 15px;"></div>
-  </section>
+  <div id="reserveMessage" style="margin-top: 15px;"></div>
+</section>
 
   <!-- My Reservations Section -->
   <section id="myReservations">
@@ -263,15 +281,41 @@ function logout() {
   );
 }
 
-// Reservation System
+// Reservation System - Updated to handle multiple items
 document.getElementById('reservationForm').addEventListener('submit', function(e) {
   e.preventDefault();
   
-  const formData = new FormData(this);
   const submitBtn = document.getElementById('reserveBtn');
+  const itemInputs = document.querySelectorAll('.item-name-input');
+  const dateNeeded = document.getElementById('reserveDate').value;
+  const purpose = document.getElementById('reservePurpose').value;
+  
+  // Collect all item names
+  const itemNames = [];
+  itemInputs.forEach(input => {
+    if (input.value.trim()) {
+      itemNames.push(input.value.trim());
+    }
+  });
+  
+  if (itemNames.length === 0) {
+    showNotification('Please enter at least one item name', 'warning');
+    return;
+  }
+  
+  if (!dateNeeded) {
+    showNotification('Please select a date', 'warning');
+    return;
+  }
   
   submitBtn.textContent = 'Submitting...';
   submitBtn.disabled = true;
+  
+  // Prepare data for multiple items
+  const formData = new FormData();
+  formData.append('item_names', JSON.stringify(itemNames));
+  formData.append('date_needed', dateNeeded);
+  formData.append('purpose', purpose);
   
   fetch('submit_reservation.php', {
     method: 'POST',
@@ -281,7 +325,31 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   .then(data => {
     if (data.success) {
       showNotification(data.message, 'success');
+      
+      // Reset form
       this.reset();
+      
+      // Reset to single item input
+      const itemsContainer = document.getElementById('itemsContainer');
+      itemsContainer.innerHTML = `
+        <div class="item-input-group">
+          <label><strong>Item Name:</strong></label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input 
+              type="text" 
+              class="item-name-input" 
+              name="item_names[]" 
+              placeholder="Enter equipment name" 
+              required 
+              style="flex: 1; padding: 8px;">
+            <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="display: none;">
+              ✕
+            </button>
+          </div>
+        </div>
+      `;
+      itemInputCount = 1;
+      
       loadMyReservations();
     } else {
       showNotification(data.message, 'error');
@@ -826,9 +894,6 @@ function closeImageModal() {
 }
 
 // ====== AUTO-SUGGEST ITEM INPUT ======
-
-// Add this to your existing JavaScript in teacher_dashboard.php
-
 // Store inventory items for autocomplete
 let inventoryItems = [];
 
@@ -843,21 +908,21 @@ function loadInventoryForAutocomplete() {
         description: item.description || item.Description
       }));
       console.log('Loaded', inventoryItems.length, 'items for autocomplete');
+      
+      // ✅ NOW initialize autocomplete (data is ready!)
+      initializeAutocomplete();
     })
     .catch(error => {
       console.error('Error loading inventory for autocomplete:', error);
     });
 }
 
+
+
 // Initialize autocomplete on the item input
 function initializeAutocomplete() {
-  const input = document.getElementById('reserveItem');
-  
-  // Disable browser's native autocomplete
-  input.setAttribute('autocomplete', 'off');
-  input.setAttribute('autocorrect', 'off');
-  input.setAttribute('autocapitalize', 'off');
-  input.setAttribute('spellcheck', 'false');
+  const input = document.getElementById('reserveItem');  
+
   
   const suggestionsContainer = document.createElement('div');
   suggestionsContainer.className = 'autocomplete-suggestions';
@@ -1036,14 +1101,71 @@ function closeCalendarPopup() {
 }
 
 // ====== INITIALIZATION ======
-
-// Add to your existing DOMContentLoaded event listener:
 document.addEventListener('DOMContentLoaded', function() {
+  // Load inventory and initialize autocomplete (this will call initializeAutocomplete internally)
   loadInventoryForAutocomplete();
-  initializeAutocomplete();
+  
+  // Other initializations
   loadMyReservations();
   setupPagination();
 });
+
+// ====== DYNAMIC ITEM INPUTS ======
+let itemInputCount = 1;
+
+function addItemInput() {
+  itemInputCount++;
+  
+  const itemsContainer = document.getElementById('itemsContainer');
+  
+  const newItemGroup = document.createElement('div');
+  newItemGroup.className = 'item-input-group';
+  newItemGroup.innerHTML = `
+    <label><strong>Item Name:</strong></label>
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+      <input 
+        type="text" 
+        class="item-name-input" 
+        name="item_names[]" 
+        placeholder="Enter equipment name" 
+        required 
+        style="flex: 1; padding: 8px;">
+      <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="background: #dc3545; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        ✕
+      </button>
+    </div>
+  `;
+  
+  itemsContainer.appendChild(newItemGroup);
+  
+  // Show remove button on all items when there's more than one
+  updateRemoveButtons();
+}
+
+function removeItemInput(button) {
+  const itemGroup = button.closest('.item-input-group');
+  itemGroup.remove();
+  itemInputCount--;
+  
+  // Update remove buttons visibility
+  updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+  const removeButtons = document.querySelectorAll('.remove-item-btn');
+  const itemGroups = document.querySelectorAll('.item-input-group');
+  
+  // Show remove buttons only if there's more than one item
+  if (itemGroups.length > 1) {
+    removeButtons.forEach(btn => {
+      btn.style.display = 'block';
+    });
+  } else {
+    removeButtons.forEach(btn => {
+      btn.style.display = 'none';
+    });
+  }
+}
 
 
 </script>
@@ -1056,6 +1178,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .reservation-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
     
     /* ====== SORT BUTTON ====== */
+
+
 #sortTable {
   background: #242424 !important;
   color: #FFD600;

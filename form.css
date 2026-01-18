@@ -2,7 +2,7 @@
 body { 
   font-family: Arial, sans-serif; 
   margin: 0; 
-  background: #c9c9c7; 
+  background: url("form.png"); 
   background-size: cover;
   background-position: fixed;
   background-repeat: no-repeat;
@@ -212,7 +212,7 @@ header {
 
 /* ====== NAVIGATION BAR ====== */
 nav { 
-  background: transparent;
+  background: transparent !important;
   padding: 12px; 
   display: flex; 
   justify-content: center; 
@@ -1699,17 +1699,21 @@ body.compact-layout header > div {
   align-items: center;
   gap: 20px;
 }
-
 body.compact-layout header > div > div:first-of-type {
   order: 2; /* Move welcome message below toggle button */
-  text-align: center;
-  font-size: 14px;
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  font-size: 20px;
+  
 }
 
 body.compact-layout #layoutToggle {
-  order: 1;
-  width: 100%;
-  margin-bottom: 20px;
+  position: fixed;
+  left: 0;
+  bottom: 1;
+  width: 290px;
+  display: flex;
 }
 
 body.compact-layout nav {
@@ -1748,14 +1752,40 @@ body.compact-layout nav button.active-nav {
 }
 
 body.compact-layout #app {
-  margin-left: 280px;
-  width: calc(100% - 280px);
+  margin-left: 250px;
+  width: calc(100% - 250px);
   padding: 20px;
 }
 
 body.compact-layout section {
   margin: 0 auto;
   width: 100%;
+  max-width: 100%;
+}
+
+body.compact-layout .table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+body.compact-layout #inventoryTable {
+  min-width: 900px; /* Reduce from 1200px */
+  width: 100%;
+}
+
+body.compact-layout #inventory {
+  width: 90%;
+  height: fit-content;
+  margin-right:2%;
+}
+
+body.compact-layout #welcome {
+  width: 150px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+
 }
 
 /* Smooth transitions */
@@ -1766,9 +1796,17 @@ header, nav, #app {
 /* Toggle button styling */
 #layoutToggle {
   transition: all 0.3s ease;
+  background: rgba(255,214,0,0.9); 
+  color: #1e1e1e; 
+  border: none; 
+  padding: 8px 16px; 
+  cursor: pointer; 
+  font-weight: bold; 
+  font-size: 10px;
 }
 
 #layoutToggle:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(255, 214, 0, 0.4);
+  transform: scale(0.9);
+  background: #FFD600;
+  
 }

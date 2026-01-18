@@ -28,12 +28,12 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
   <div style="display: flex; justify-content: space-between; align-items: center;">
     <h1 style="margin: 1%;">LabTrack - SHS Laboratory Inventory</h1>
     <div style="display: flex; align-items: center; gap: 20px;">
-      <div style="text-align: right;">
+      <button id="layoutToggle" onclick="toggleLayout()">
+       Toggle View
+      </button>
+      <div id= "welcome" style="text-align: left;">
         Welcome, <?php echo $userName; ?>
       </div>
-      <button id="layoutToggle" onclick="toggleLayout()" style="background: rgba(255,214,0,0.9); color: #1e1e1e; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px;">
-        Switch View
-      </button>
     </div>
   </div>
 </header>
@@ -612,13 +612,13 @@ function toggleLayout() {
   if (isCompactLayout) {
     // Sidebar layout
     document.body.classList.add('compact-layout');
-    toggleBtn.innerHTML = '⚡ Standard View'; // Changed
-    toggleBtn.style.background = 'rgba(255,255,255,0.9)';
+    toggleBtn.innerHTML = 'Standard View'; // Changed
+    toggleBtn.style.background = 'rgba(255, 251, 234, 0.9)';
   } else {
     // Standard layout
     document.body.classList.remove('compact-layout');
-    toggleBtn.innerHTML = '⚡ Sidebar View'; // Changed
-    toggleBtn.style.background = 'rgba(255,214,0,0.9)';
+    toggleBtn.innerHTML = 'Sidebar View'; // Changed
+    toggleBtn.style.background = 'rgba(255, 251, 234, 0.9)';
   }
   
   // Save preference
