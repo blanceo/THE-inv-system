@@ -59,7 +59,11 @@ require_once 'check_session.php';
 <button 
   type="button" 
   id="addItemBtn" 
-  onclick="addItemInput()"
+  onclick="addItemInput() 
+  loadInventoryForAutocomplete();
+  initializeAllAutocomplete();
+  highlightMatch(text, query);
+  updateRemoveButtons();"
   style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; margin-top: 8px; font-size:8px;  ">
   + Add Another Item
 </button>
@@ -549,7 +553,7 @@ html += `
     <td>
       <div class="item-cell-container">
         <span class="item-name-text">${escapeHtml(itemName)}</span>
-        <img src="eye.png" class="eye-icon" 
+        <img src="uploads/eye.png" class="eye-icon" 
              onclick="openImageModal('${rowId}', '${escapeHtml(itemName)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
              onmouseenter="showHoverPreview(this, '${escapeHtml(imagePath)}', '${escapeHtml(itemName)}', '${escapeHtml(room)}')" 
              onmouseleave="hideHoverPreview()" 
@@ -893,11 +897,9 @@ function closeImageModal() {
   }
 }
 
-// ====== AUTO-SUGGEST ITEM INPUT ======
 // Store inventory items for autocomplete
 let inventoryItems = [];
-
-// Load inventory items for autocomplete when page loads
+// Load inventory items for autocomplete 
 function loadInventoryForAutocomplete() {
   fetch('api/get_inventory.php')
     .then(response => response.json())
@@ -909,25 +911,49 @@ function loadInventoryForAutocomplete() {
       }));
       console.log('Loaded', inventoryItems.length, 'items for autocomplete');
       
-      // ✅ NOW initialize autocomplete (data is ready!)
-      initializeAutocomplete();
+      // Initialize autocomplete on existing inputs
+      initializeAllAutocomplete();
     })
     .catch(error => {
       console.error('Error loading inventory for autocomplete:', error);
     });
 }
 
-
-
-// Initialize autocomplete on the item input
-function initializeAutocomplete() {
-  const input = document.getElementById('reserveItem');  
-
+// Initialize autocomplete on ALL existing item inputs
+function initializeAllAutocomplete() {
+  const allInputs = document.querySelectorAll('.item-name-input');
+  console.log('Initializing autocomplete on', allInputs.length, 'inputs');
   
+  allInputs.forEach(input => {
+    attachAutocompleteToInput(input);
+  });
+}
+
+// Attach autocomplete to a single input element
+function attachAutocompleteToInput(input) {
+  // Check if already initialized
+  if (input.dataset.autocompleteInitialized === 'true') {
+    console.log('Autocomplete already initialized on this input');
+    return;
+  }
+  
+  // Mark as initialized
+  input.dataset.autocompleteInitialized = 'true';
+  
+  // Disable browser's native autocomplete
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('autocorrect', 'off');
+  input.setAttribute('autocapitalize', 'off');
+  input.setAttribute('spellcheck', 'false');
+  
+  // Create suggestions container for this input
   const suggestionsContainer = document.createElement('div');
   suggestionsContainer.className = 'autocomplete-suggestions';
-  suggestionsContainer.id = 'autocompleteSuggestions';
-  input.parentNode.insertBefore(suggestionsContainer, input.nextSibling);
+  
+  // Insert after the input's parent div
+  const inputWrapper = input.parentElement;
+  inputWrapper.style.position = 'relative';
+  inputWrapper.appendChild(suggestionsContainer);
 
   // Listen for input changes
   input.addEventListener('input', function() {
@@ -940,10 +966,10 @@ function initializeAutocomplete() {
       return;
     }
 
-    // Filter inventory items that match the input
+    // Filter inventory items that match
     const matches = inventoryItems.filter(item => 
       item.name.toLowerCase().includes(value)
-    ).slice(0, 8); // Limit to 8 suggestions
+    ).slice(0, 8);
 
     // Display suggestions
     if (matches.length > 0) {
@@ -962,8 +988,8 @@ function initializeAutocomplete() {
       suggestionsContainer.innerHTML = html;
       suggestionsContainer.style.display = 'block';
 
-      // Add click handlers to suggestions
-      document.querySelectorAll('.autocomplete-item').forEach(suggestionEl => {
+      // Add click handlers
+      suggestionsContainer.querySelectorAll('.autocomplete-item').forEach(suggestionEl => {
         suggestionEl.addEventListener('click', function() {
           input.value = this.getAttribute('data-name');
           suggestionsContainer.innerHTML = '';
@@ -1020,6 +1046,8 @@ function initializeAutocomplete() {
       suggestionsContainer.style.display = 'none';
     }
   });
+  
+  console.log('Autocomplete attached to input');
 }
 
 // Highlight matching text
@@ -1033,6 +1061,63 @@ function highlightMatch(text, query) {
   
   return `${escapeHtml(before)}<strong class="highlight">${escapeHtml(match)}</strong>${escapeHtml(after)}`;
 }
+
+// ====== UPDATED ADD ITEM FUNCTION ======
+let itemInputCount = 1;
+
+function addItemInput() {
+  itemInputCount++;
+  
+  const itemsContainer = document.getElementById('itemsContainer');
+  
+  const newItemGroup = document.createElement('div');
+  newItemGroup.className = 'item-input-group';
+  newItemGroup.innerHTML = `
+    <label><strong>Item Name:</strong></label>
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; position: relative;">
+      <input 
+        type="text" 
+        class="item-name-input" 
+        name="item_names[]" 
+        placeholder="Enter equipment name" 
+        required 
+        style="flex: 1; padding: 8px;">
+      <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="background: #dc3545; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        ✕
+      </button>
+    </div>
+  `;
+  
+  itemsContainer.appendChild(newItemGroup);
+  
+  // ✅ Attach autocomplete to the NEW input
+  const newInput = newItemGroup.querySelector('.item-name-input');
+  attachAutocompleteToInput(newInput);
+  onclick
+}
+
+function removeItemInput(button) {
+  const itemGroup = button.closest('.item-input-group');
+  itemGroup.remove();
+  itemInputCount--;
+  updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+  const removeButtons = document.querySelectorAll('.remove-item-btn');
+  const itemGroups = document.querySelectorAll('.item-input-group');
+  
+  if (itemGroups.length > 1) {
+    removeButtons.forEach(btn => {
+      btn.style.display = 'block';
+    });
+  } else {
+    removeButtons.forEach(btn => {
+      btn.style.display = 'none';
+    });
+  }
+}
+
 
 // ====== CALENDAR POPUP ======
 
@@ -1102,16 +1187,12 @@ function closeCalendarPopup() {
 
 // ====== INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', function() {
-  // Load inventory and initialize autocomplete (this will call initializeAutocomplete internally)
   loadInventoryForAutocomplete();
-  
-  // Other initializations
   loadMyReservations();
   setupPagination();
 });
 
 // ====== DYNAMIC ITEM INPUTS ======
-let itemInputCount = 1;
 
 function addItemInput() {
   itemInputCount++;

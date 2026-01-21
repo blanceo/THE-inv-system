@@ -1,7 +1,4 @@
 <?php
-// ========================================
-// FILE 2: delete_image.php
-// ========================================
 require_once 'check_session.php';
 require_once 'config/db_connect.php';
 

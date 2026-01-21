@@ -12,7 +12,7 @@ body {
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
-  background-image: url('homepage.png');
+  background-image: url('uploads/homepage.png');
   background-size: cover;
   background-position: fixed;
   background-repeat: no-repeat;

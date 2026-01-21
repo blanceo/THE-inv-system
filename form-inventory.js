@@ -227,7 +227,7 @@ function renderTable() {
       <td>
         <div class="item-cell-container">
           <span class="item-name-text">${escapeHtml(item)}</span>
-          <img src="eye.png" class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(item)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
+          <img src="uploads/eye.png" class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(item)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
      onmouseenter="showHoverPreview(this, '${escapeHtml(imagePath)}', '${escapeHtml(item)}', '${escapeHtml(room)}')" 
      onmouseleave="hideHoverPreview()" 
      title="View/Upload Image" alt="View Image">
@@ -992,7 +992,7 @@ function finishSave() {
     cell.innerHTML = `
       <div class="item-cell-container">
         <span class="item-name-text">${escapeHtml(newVal)}</span>
-        <img src="eye.png" class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(newVal)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
+        <img src="uploads/eye.png" class="eye-icon" onclick="openImageModal(${rowId}, '${escapeHtml(newVal)}', '${escapeHtml(room)}', '${escapeHtml(imagePath)}', event)" 
              onmouseenter="showHoverPreview(this, '${escapeHtml(imagePath)}', '${escapeHtml(newVal)}', '${escapeHtml(room)}')" 
              onmouseleave="hideHoverPreview()" 
              title="View/Upload Image" alt="View Image">
