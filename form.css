@@ -1704,7 +1704,8 @@ body.compact-layout header > div > div:first-of-type {
   position: fixed;
   bottom: 20px;
   left: 0;
-  font-size: 20px;
+  font-size: 23px;
+  line-height: 100%;
   
 }
 
@@ -1780,11 +1781,12 @@ body.compact-layout #inventory {
 }
 
 body.compact-layout #welcome {
-  width: 150px;
-  height: 600px;
+  width: 100%;
+  height: 150px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  padding-left: 10px;
 
 }
 

@@ -32,7 +32,7 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
        Toggle View
       </button>
       <div id= "welcome" style="text-align: left;">
-        Welcome, <?php echo $userName; ?>
+        Welcome, <br> <?php echo $userName; ?>
       </div>
     </div>
   </div>
