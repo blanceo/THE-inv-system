@@ -150,18 +150,6 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
   </div>
 </section>
 
-  <!-- Reservation Section -->
-<section id="reservations">
-  <h2>Reserve Equipment</h2>
-  <p>Select items to reserve for lab activities.</p>
-
-  <form id="reservationForm">
-    <label>Item:</label>
-    <input type="text" id="reserveItem" placeholder="Enter equipment name"><br><br>
-    <label>Date Needed:</label>
-    <input type="date" id="reserveDate"><br><br>
-    <button id="reserveBtn" type="button" disabled>Submit Reservation</button>
-  </form>
 
   <!-- Popup Message -->
   <div id="reservePopup" class="popup"></div>
@@ -173,20 +161,6 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
   </div>
 </section>
 
-
-  <!-- History Section -->
-<section id="history">
-  <h2>Usage History</h2>
-  <table id="historyTable">
-    <thead>
-      <tr><th>Date</th><th>User</th><th>Item</th><th>Action</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>2025-08-18</td><td>Mr. Santos</td><td>Microscope</td><td class="action-cell">Borrowed</td></tr>
-      <tr><td>2025-08-19</td><td>Ms. Cruz</td><td>Beaker 250 mL</td><td class="action-cell">Returned</td></tr>
-    </tbody>
-  </table>
-</section>
 
 </div>
 
@@ -388,6 +362,7 @@ function renderReservationsTable() {
             Date Needed
             <span class="sort-arrow ${currentSortColumn === 'date_needed' ? currentSortDirection : ''}"></span>
           </th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Time Needed</th>
           <th style="padding: 12px; border: 1px solid #ddd;">Purpose</th>
           <th class="sortable-header" data-column="status" style="padding: 12px; border: 1px solid #ddd;">
             Status
@@ -406,6 +381,7 @@ function renderReservationsTable() {
   pageData.forEach(reservation => {
     const statusClass = `reservation-status status-${reservation.status}`;
     const dateNeeded = new Date(reservation.date_needed).toLocaleDateString();
+    const timeNeeded = reservation.time_needed || 'Not specified';
     const submitted = new Date(reservation.created_at).toLocaleDateString();
     
     html += `
@@ -413,6 +389,7 @@ function renderReservationsTable() {
         <td style="padding: 12px; border: 1px solid #ddd;">${reservation.teacher_name || reservation.teacher_username}</td>
         <td style="padding: 12px; border: 1px solid #ddd;">${reservation.item_name}</td>
         <td style="padding: 12px; border: 1px solid #ddd;">${dateNeeded}</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">${timeNeeded}</td>
         <td style="padding: 12px; border: 1px solid #ddd;">${reservation.purpose || 'N/A'}</td>
         <td style="padding: 12px; border: 1px solid #ddd;">
           <span class="${statusClass}">${reservation.status.toUpperCase()}</span>

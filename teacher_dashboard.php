@@ -64,7 +64,7 @@ require_once 'check_session.php';
   initializeAllAutocomplete();
   highlightMatch(text, query);
   updateRemoveButtons();"
-  style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; margin-top: 8px; font-size:8px;  ">
+  style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; margin-top: 8px; margin-left: 0px; font-size:8px;  ">
   + Add Another Item
 </button>
 
@@ -76,6 +76,16 @@ require_once 'check_session.php';
         id="reserveDate" 
         name="date_needed" 
         required style="padding: 8px;">
+      
+      <br><br>
+
+            <label><strong>Time Needed:</strong></label>
+      <input 
+        type="time" 
+        id="reserveTime" 
+        name="time_needed" 
+        required style="padding: 8px;">
+        
       
       <br><br>
       
@@ -293,6 +303,8 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   const itemInputs = document.querySelectorAll('.item-name-input');
   const dateNeeded = document.getElementById('reserveDate').value;
   const purpose = document.getElementById('reservePurpose').value;
+  const timeNeeded = document.getElementById('reserveTime').value;
+
   
   // Collect all item names
   const itemNames = [];
@@ -319,6 +331,7 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   const formData = new FormData();
   formData.append('item_names', JSON.stringify(itemNames));
   formData.append('date_needed', dateNeeded);
+  formData.append('time_needed', timeNeeded);
   formData.append('purpose', purpose);
   
   fetch('submit_reservation.php', {
@@ -385,23 +398,27 @@ function loadMyReservations() {
             <tr style="background: #f8f9fa;">
               <th style="padding: 12px; border: 1px solid #ddd;">Item</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Date Needed</th>
+              <th style="padding: 12px; border: 1px solid #ddd;">Time Needed</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Purpose</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Status</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Submitted</th>
             </tr>
-          </thead>
+          </thead> 
           <tbody>
       `;
       
       reservations.forEach(reservation => {
         const statusClass = `reservation-status status-${reservation.status}`;
         const dateNeeded = new Date(reservation.date_needed).toLocaleDateString();
+        const timeNeeded = reservation.time_needed || 'Not specified';
         const submitted = new Date(reservation.created_at).toLocaleDateString();
         
         html += `
           <tr>
             <td style="padding: 12px; border: 1px solid #ddd;">${reservation.item_name}</td>
             <td style="padding: 12px; border: 1px solid #ddd;">${dateNeeded}</td>
+            <td style="padding: 12px; border: 1px solid #ddd;">${timeNeeded}</td>
+
             <td style="padding: 12px; border: 1px solid #ddd;">${reservation.purpose || 'N/A'}</td>
             <td style="padding: 12px; border: 1px solid #ddd;">
               <span class="${statusClass}">${reservation.status.toUpperCase()}</span>

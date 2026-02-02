@@ -1,8 +1,4 @@
 <?php
-
-// ========================================
-// FILE 3: calendar.php (Main Calendar Page)
-// ========================================
 require_once 'check_session.php';
 
 $isAdmin = isAdmin();
@@ -30,7 +26,6 @@ $userName = $_SESSION['full_name'];
   transform: none !important;
 }
 
-/* Match the nav styles from form.css */
 nav { 
   background: #c9c9c7;
   padding: 12px; 
@@ -338,7 +333,13 @@ nav button:active {
     .teacher-name {
       color: #666;
       font-size: 14px;
-      margin-bottom: 8px;
+      margin-top: 3px;
+    }
+
+    .item-time {
+      color: #666;
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .item-purpose {
@@ -633,25 +634,29 @@ function showReservations(date, dayReservations) {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   modalDate.textContent = `Reservations for ${dateObj.toLocaleDateString('en-US', options)}`;
 
-  let html = '';
-  dayReservations.forEach(reservation => {
-    html += `
-      <div class="reservation-item">
-        <div class="reservation-item-header">
-          <div>
-            <div class="item-name">${reservation.item_name}</div>
-            <div class="teacher-name">👤 ${reservation.teacher_name}</div>
-            ${reservation.purpose ? `<div class="item-purpose">📝 ${reservation.purpose}</div>` : ''}
-          </div>
-          ${isAdmin ? `
-            <button class="delete-reservation-btn" onclick="deleteReservation(${reservation.id})">
-              Delete
-            </button>
-          ` : ''}
+let html = '';
+dayReservations.forEach(reservation => {
+  html += `
+    <div class="reservation-item">
+      <div class="reservation-item-header">
+        <div>
+          <div class="item-name">${reservation.item_name}</div>
+          <div class="teacher-name">👤 ${reservation.teacher_name}</div>
+          ${reservation.time_needed ? `<div class="item-time">🕒 ${reservation.time_needed}</div>` : ''}
+          ${reservation.purpose ? `<div class="item-purpose">📝 ${reservation.purpose}</div>` : ''}
         </div>
+        ${isAdmin ? `
+          <button class="delete-reservation-btn" onclick="deleteReservation(${reservation.id})">
+            Delete
+          </button>
+          
+
+          
+        ` : ''}
       </div>
-    `;
-  });
+    </div>
+  `;
+});
 
   modalBody.innerHTML = html;
   modal.classList.add('show');

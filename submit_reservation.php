@@ -15,6 +15,7 @@ $teacher_id = $_SESSION['user_id'];
 // Get form data
 $item_names_json = $_POST['item_names'] ?? '';
 $date_needed = $_POST['date_needed'] ?? '';
+$time_needed = $_POST['time_needed'] ?? NULL;
 $purpose = $_POST['purpose'] ?? '';
 
 // Validate inputs
@@ -45,8 +46,8 @@ foreach ($item_names as $item_name) {
         continue;
     }
     
-    $stmt = $conn->prepare("INSERT INTO reservations (teacher_id, item_name, date_needed, purpose, status, created_at) VALUES (?, ?, ?, ?, 'pending', NOW())");
-    $stmt->bind_param("isss", $teacher_id, $item_name, $date_needed, $purpose);
+    $stmt = $conn->prepare("INSERT INTO reservations (teacher_id, item_name, date_needed, time_needed, purpose, status, created_at) VALUES (?, ?, ?, ?, ?, 'pending', NOW())");
+    $stmt->bind_param("issss", $teacher_id, $item_name, $date_needed, $time_needed, $purpose);
     
     if ($stmt->execute()) {
         $success_count++;
