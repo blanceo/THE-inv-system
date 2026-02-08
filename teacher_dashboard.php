@@ -7,13 +7,7 @@ require_once 'check_session.php';
   <meta charset="UTF-8">
   <title>Teacher Dashboard - LabTrack</title>
   <link rel="stylesheet" href="form.css">
-  <style>
-    .reservation-status { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-approved { background: #d1ecf1; color: #0c5460; }
-    .status-rejected { background: #f8d7da; color: #721c24; }
-    .reservation-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-  </style>
+
 </head>
 <body>
 
@@ -34,9 +28,8 @@ require_once 'check_session.php';
 </nav>
 
   <section id="reservations" class="active">
-  <h2>Reserve Equipment</h2>
-  
   <div class="reservation-form">
+    <h2>Reserve Equipment</h2>
     <form id="reservationForm">
       <div id="itemsContainer">
         <div class="item-input-group">
@@ -63,8 +56,7 @@ require_once 'check_session.php';
   loadInventoryForAutocomplete();
   initializeAllAutocomplete();
   highlightMatch(text, query);
-  updateRemoveButtons();"
-  style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; margin-top: 8px; margin-left: 0px; font-size:8px;  ">
+  updateRemoveButtons();">
   + Add Another Item
 </button>
 
@@ -99,25 +91,31 @@ require_once 'check_session.php';
       
       <br><br>
       
-      <button 
-        type="submit" 
-        id="reserveBtn" 
-        style="background: #d19300ff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight:bold">
+      <button type="submit" id="reserveBtn">
         Submit Reservation Request
       </button>
     </form>
   </div>
 
   <div id="reserveMessage" style="margin-top: 15px;"></div>
+  </div>
+
 </section>
 
-  <!-- My Reservations Section -->
-  <section id="myReservations">
-    <h2>My Reservation Requests</h2>
-    <div id="teacherReservationsList">
-      <p>Loading your reservations...</p>
-    </div>
-  </section>
+<!-- My Reservations Section -->
+<section id="myReservations">
+  <h2>My Reservation Requests</h2>
+  
+  <div style="margin-bottom: 15px;">
+    <button id="cancelReservationBtn" onclick="cancelSelectedReservation()" disabled>✕ Cancel Request</button>
+    <button id="borrowReservationBtn" onclick="markAsBorrowed()" disabled>📤 Mark as Borrowed</button>
+    <button id="returnReservationBtn" onclick="markAsReturned()" disabled>📥 Mark as Returned</button>
+  </div>
+
+  <div id="teacherReservationsList">
+    <p>Loading your reservations...</p>
+  </div>
+</section>
 
   <!-- Inventory Section -->
   <section id="inventory">
@@ -278,6 +276,14 @@ function showConfirmation(message, onConfirm, onCancel = null) {
 function showSection(sectionId) {
   document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
   document.getElementById(sectionId).classList.add("active");
+  updateActiveNav(sectionId);
+  
+  // Reset reservation selection when leaving My Reservations
+  if (sectionId !== 'myReservations') {
+    selectedReservation = null;
+    selectedReservationStatus = null;
+    updateActionButtons(null);
+  }
   
   if (sectionId === 'myReservations') {
     loadMyReservations();
@@ -381,7 +387,16 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   });
 });
 
+// Track selected reservation
+let selectedReservation = null;
+let selectedReservationStatus = null;
+
 function loadMyReservations() {
+  // Reset selection when reloading
+  selectedReservation = null;
+  selectedReservationStatus = null;
+  updateActionButtons(null);
+  
   fetch('get_reservations.php')
     .then(response => response.json())
     .then(reservations => {
@@ -396,6 +411,7 @@ function loadMyReservations() {
         <table style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr style="background: #f8f9fa;">
+              <th style="padding: 12px; border: 1px solid #ddd; width: 40px;">✎</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Item</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Date Needed</th>
               <th style="padding: 12px; border: 1px solid #ddd;">Time Needed</th>
@@ -413,12 +429,20 @@ function loadMyReservations() {
         const timeNeeded = reservation.time_needed || 'Not specified';
         const submitted = new Date(reservation.created_at).toLocaleDateString();
         
+        // Determine if row is editable
+        const isEditable = ['pending', 'approved', 'borrowed'].includes(reservation.status);
+        
         html += `
-          <tr>
+          <tr class="${isEditable ? 'reservation-row-editable' : 'reservation-row-readonly'}" 
+              data-reservation-id="${reservation.id}"
+              data-reservation-status="${reservation.status}"
+              onclick="${isEditable ? `selectReservation(${reservation.id}, '${reservation.status}', this)` : ''}">
+            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-size: 16px;">
+              ${isEditable ? '✎' : ''}
+            </td>
             <td style="padding: 12px; border: 1px solid #ddd;">${reservation.item_name}</td>
             <td style="padding: 12px; border: 1px solid #ddd;">${dateNeeded}</td>
             <td style="padding: 12px; border: 1px solid #ddd;">${timeNeeded}</td>
-
             <td style="padding: 12px; border: 1px solid #ddd;">${reservation.purpose || 'N/A'}</td>
             <td style="padding: 12px; border: 1px solid #ddd;">
               <span class="${statusClass}">${reservation.status.toUpperCase()}</span>
@@ -435,6 +459,206 @@ function loadMyReservations() {
       console.error('Error loading reservations:', error);
       document.getElementById('teacherReservationsList').innerHTML = '<p>Error loading reservations.</p>';
     });
+}
+
+// Select/deselect a reservation row
+function selectReservation(reservationId, status, rowElement) {
+  // Check if this row is already selected
+  const isAlreadySelected = rowElement.classList.contains('selected-reservation');
+  
+  // Remove ALL previous selections first
+  document.querySelectorAll('.reservation-row-editable').forEach(row => {
+    row.classList.remove('selected-reservation');
+  });
+  
+  // If clicking a different row (wasn't already selected), select it
+  if (!isAlreadySelected) {
+    selectedReservation = reservationId;
+    selectedReservationStatus = status;
+    rowElement.classList.add('selected-reservation');
+    updateActionButtons(status);
+  } else {
+    // If clicking the same row, deselect it
+    selectedReservation = null;
+    selectedReservationStatus = null;
+    updateActionButtons(null);
+  }
+}
+
+// Update which action buttons are enabled
+function updateActionButtons(status) {
+  const cancelBtn = document.getElementById('cancelReservationBtn');
+  const borrowBtn = document.getElementById('borrowReservationBtn');
+  const returnBtn = document.getElementById('returnReservationBtn');
+  
+  // Disable all buttons first
+  cancelBtn.disabled = true;
+  borrowBtn.disabled = true;
+  returnBtn.disabled = true;
+  
+  // Enable appropriate button
+  if (status === 'pending') {
+    cancelBtn.disabled = false;
+  } else if (status === 'approved') {
+    borrowBtn.disabled = false;
+  } else if (status === 'borrowed') {
+    returnBtn.disabled = false;
+  }
+}
+
+// Cancel pending reservation
+function cancelSelectedReservation() {
+  if (!selectedReservation) {
+    showNotification('Please select a reservation first', 'warning');
+    return;
+  }
+  showConfirmation(
+    'Are you sure you want to cancel this reservation request?',
+    () => updateReservationStatus(selectedReservation, 'cancelled')
+  );
+}
+
+// Mark as borrowed
+function markAsBorrowed() {
+  if (!selectedReservation) {
+    showNotification('Please select a reservation first', 'warning');
+    return;
+  }
+  showConfirmation(
+    'Mark this item as borrowed?',
+    () => updateReservationStatus(selectedReservation, 'borrowed')
+  );
+}
+
+// Mark as returned
+function markAsReturned() {
+  if (!selectedReservation) {
+    showNotification('Please select a reservation first', 'warning');
+    return;
+  }
+  showConfirmation(
+    'Mark this item as returned?',
+    () => updateReservationStatus(selectedReservation, 'returned')
+  );
+}
+
+// Send update to server
+function updateReservationStatus(reservationId, newStatus) {
+  const formData = new FormData();
+  formData.append('reservation_id', reservationId);
+  formData.append('status', newStatus);
+  
+  fetch('update_reservation_status.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showNotification(data.message, 'success');
+      // Reset selection
+      selectedReservation = null;
+      selectedReservationStatus = null;
+      loadMyReservations();
+    } else {
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    showNotification('Error: ' + error.message, 'error');
+  });
+}
+
+// Update which action buttons are enabled
+function updateActionButtons(status) {
+  const cancelBtn = document.getElementById('cancelReservationBtn');
+  const borrowBtn = document.getElementById('borrowReservationBtn');
+  const returnBtn = document.getElementById('returnReservationBtn');
+  
+  // Reset all buttons
+  cancelBtn.disabled = true;
+  borrowBtn.disabled = true;
+  returnBtn.disabled = true;
+  
+  // Enable appropriate button based on status
+  if (status === 'pending') {
+    cancelBtn.disabled = false;
+  } else if (status === 'approved') {
+    borrowBtn.disabled = false;
+  } else if (status === 'borrowed') {
+    returnBtn.disabled = false;
+  }
+}
+
+// Cancel pending reservation
+function cancelSelectedReservation() {
+  if (!selectedReservation) {
+    showNotification('Please select a reservation first', 'warning');
+    return;
+  }
+  
+  showConfirmation(
+    'Are you sure you want to cancel this reservation request?',
+    () => {
+      updateReservationStatus(selectedReservation, 'cancelled');
+    }
+  );
+}
+
+// Mark as borrowed
+function markAsBorrowed() {
+  if (!selectedReservation) {
+    showNotification('Please select a reservation first', 'warning');
+    return;
+  }
+  
+  showConfirmation(
+    'Mark this item as borrowed?',
+    () => {
+      updateReservationStatus(selectedReservation, 'borrowed');
+    }
+  );
+}
+
+// Mark as returned
+function markAsReturned() {
+  if (!selectedReservation) {
+    showNotification('Please select a reservation first', 'warning');
+    return;
+  }
+  
+  showConfirmation(
+    'Mark this item as returned?',
+    () => {
+      updateReservationStatus(selectedReservation, 'returned');
+    }
+  );
+}
+
+// Update reservation status
+function updateReservationStatus(reservationId, newStatus) {
+  const formData = new FormData();
+  formData.append('reservation_id', reservationId);
+  formData.append('status', newStatus);
+  
+  fetch('update_reservation_status.php', { 
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      showNotification(data.message, 'success');
+      selectedReservation = null;
+      selectedReservationStatus = null;
+      loadMyReservations(); // Reload the table
+    } else {
+      showNotification(data.message, 'error');
+    }
+  })
+  .catch(error => {
+    showNotification('Error updating reservation: ' + error.message, 'error');
+  });
 }
 
 // Inventory System with Pagination
@@ -1273,11 +1497,61 @@ function updateRemoveButtons() {
     .status-pending { background: #fff3cd; color: #856404; }
     .status-approved { background: #d1ecf1; color: #0c5460; }
     .status-rejected { background: #f8d7da; color: #721c24; }
-    .reservation-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
     
+
+
+/* CSS for the status buttons on reservations */
+  .status-cancelled { background: #f8d7da; color: #721c24; }
+  .status-borrowed { background: #d1ecf1; color: #0c5460; }
+  .status-returned { background: #d4edda; color: #155724; }
+  
+/* ====== RESERVATION FORM SPLIT IN HALF ====== */
+.reservation-form { 
+    background: #f9fcff; 
+    padding: 20px; 
+    border-radius: 8px; 
+    margin-bottom: 20px; 
+  }
+
+
+
+/* ====== RESERVATION ROW STYLES ====== */
+.reservation-row-editable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.reservation-row-editable:hover {
+  background-color: #f8f9fa !important;
+}
+
+.reservation-row-editable.selected-reservation {
+  background-color: #fff3cd !important;
+  border-left: 4px solid #FFD600;
+}
+
+.reservation-row-readonly {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+  /* Selectable row style */
+  .reservation-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .reservation-row:hover {
+    background-color: #f8f9fa !important;
+  }
+  
+  .reservation-row.selected {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107;
+  }
+
+
     /* ====== SORT BUTTON ====== */
-
-
 #sortTable {
   background: #242424 !important;
   color: #FFD600;
@@ -1290,6 +1564,38 @@ function updateRemoveButtons() {
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
+#reserveBtn {
+  background: #d19300ff; 
+  color: white; 
+  padding: 10px 20px; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer; 
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+#reserveBtn:hover { 
+ background: #000000;
+ color: #ffd600;
+ border-color: #000000;
+ font-weight: bold;
+}
+
+#addItemBtn {
+  background: #d19300ff; 
+  color: white; 
+  padding: 10px 20px; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer; 
+  margin-bottom: 15px; 
+  margin-top: 8px; 
+  margin-left: 0px; 
+  font-size:8px;
+}
+
 
 #sortTable:hover {
   background: #FFD600 !important;
@@ -1390,6 +1696,8 @@ function updateRemoveButtons() {
       border-radius: 4px;
       background: white;
     }
+
+
 
 /* ====== EYE ICON STYLES ====== */
 .item-cell-container {

@@ -689,6 +689,10 @@ select.inline-input:focus {
 .status-pending { background: #fff3cd; color: #856404; }
 .status-approved { background: #d1ecf1; color: #0c5460; }
 .status-rejected { background: #f8d7da; color: #721c24; }
+.status-cancelled { background: #f8d7da; color: #721c24; }
+.status-borrowed { background: #cce5ff; color: #004085; }
+.status-returned { background: #d4edda; color: #155724; }
+
 
 .admin-actions {
   display: flex;
