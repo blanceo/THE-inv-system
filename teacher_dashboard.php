@@ -12,12 +12,29 @@ require_once 'check_session.php';
 <body>
 
 <header>
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1 style="margin: 1%;">LabTrack - Teacher's Dashboard</h1>
-    <div style="display: flex; align-items: center; gap: 20px; font-size:25px">
-      <div id= "welcome" style="text-align: left;">
-        Welcome, <?php echo $_SESSION['full_name']; ?> 
-      </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <!-- LEFT SIDE: logos + title -->
+    <div style="display: flex; align-items: left; gap: 5px;">
+      <img src="uploads/pcc.png" alt="PCC Logo" style="width: 52px; height: 52px; object-fit: contain;">
+      <img src="uploads/pccSHS.png" alt="PCC SHS Logo" style="width: 52px; height: 52px; object-fit: contain;">
+      <img src="uploads/stemlogo.png" alt="STEM Logo" style="width: 52px; height: 52px; object-fit: contain;">
+    </div>
+    <h1 style="font-size:30px;">LabTrack - Teacher's Dashboard</h1>
+    <div style="display: flex; align-items: center; gap: 20px;">
+  <div id="welcome" style="text-align: right; font-size: 16px; line-height: 1.3;">
+    Welcome,<br><strong><?php echo $_SESSION['full_name']?></strong>
+  </div>
+  
+  <!-- Profile Avatar -->
+  <div class="profile-avatar-wrapper" onclick="document.getElementById('profileUpload').click()" title="Click to change profile picture">
+    <img id="profileAvatar" src="" alt="Profile" class="profile-avatar-img">
+    <div id="profileAvatarInitials" class="profile-avatar-initials">
+      <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
+    </div>
+    <div class="profile-avatar-overlay">📷</div>
+    <input type="file" id="profileUpload" accept="image/*" style="display:none;" onchange="handleProfileUpload(event)">
+  </div>
+</div>
     </div>
   </div>
 </header>
@@ -110,7 +127,13 @@ require_once 'check_session.php';
 <section id="myReservations">
   <h2>My Reservation Requests</h2>
   
-  <div style="margin-bottom: 15px;">
+  <!-- Filter Buttons -->
+  <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
+    <button class="res-filter-btn active-filter" onclick="filterMyReservations('')">All</button>
+    <button class="res-filter-btn" onclick="filterMyReservations('approved')">Approved</button>
+    <button class="res-filter-btn" onclick="filterMyReservations('pending')">Pending</button>
+    <button class="res-filter-btn" onclick="filterMyReservations('rejected')">Rejected</button>
+
     <button id="cancelReservationBtn" onclick="cancelSelectedReservation()" disabled>✕ Cancel Request</button>
     <button id="borrowReservationBtn" onclick="markAsBorrowed()" disabled>📤 Mark as Borrowed</button>
     <button id="returnReservationBtn" onclick="markAsReturned()" disabled>📥 Mark as Returned</button>
@@ -118,6 +141,26 @@ require_once 'check_session.php';
 
   <div id="teacherReservationsList">
     <p>Loading your reservations...</p>
+  </div>
+  <div class="pagination-container" id="myReservationsPagination" style="display:none;">
+    <div class="pagination-info" id="myReservationsPaginationInfo"></div>
+    <div class="pagination-controls">
+      <button id="myResFirstPage" class="pagination-btn">First</button>
+      <button id="myResPrevPage" class="pagination-btn">Previous</button>
+      <div id="myResPageNumbers" class="page-numbers"></div>
+      <button id="myResNextPage" class="pagination-btn">Next</button>
+      <button id="myResLastPage" class="pagination-btn">Last</button>
+    </div>
+    <div class="page-size-selector">
+      <label>Items per page:
+        <select id="myResPageSize">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </label>
+    </div>
   </div>
 </section>
 
@@ -133,6 +176,12 @@ require_once 'check_session.php';
     </div>
 
 <button id="sortTable" onclick="sortTable()">Sort A–Z</button>
+
+<button class="room-filter-btn active-room-filter" onclick="filterByRoom('')">All Rooms</button>
+<button class="room-filter-btn" onclick="filterByRoom('Chemical Room')">Chemical Room</button>
+<button class="room-filter-btn" onclick="filterByRoom('Laboratory 1')">Laboratory 1</button>
+<button class="room-filter-btn" onclick="filterByRoom('Laboratory 2')">Laboratory 2</button>
+<button class="room-filter-btn" onclick="filterByRoom('Storage Room')">Storage Room</button>
 
     <table id="inventoryTable">
       <thead>
@@ -183,6 +232,78 @@ window.addEventListener('DOMContentLoaded', function() {
     showSection(hash);
   }
 });
+
+// ====== PROFILE AVATAR ======
+(function initProfileAvatar() {
+  // Key is per-user so different accounts don't share a picture
+  const userId = '<?php echo $_SESSION['user_id']; ?>';
+  const storageKey = 'profilePic_' + userId;
+
+  const img = document.getElementById('profileAvatar');
+  const initials = document.getElementById('profileAvatarInitials');
+  const saved = localStorage.getItem(storageKey);
+
+  if (saved) {
+    img.src = saved;
+    img.style.display = 'block';
+    initials.style.display = 'none';
+  }
+
+  window.handleProfileUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 2MB limit
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image too large. Please choose an image under 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target.result;
+      localStorage.setItem(storageKey, dataUrl);
+      img.src = dataUrl;
+      img.style.display = 'block';
+      initials.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  };
+})();
+
+// Right-click to remove profile picture
+document.querySelector('.profile-avatar-wrapper').addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  
+  const userId = '<?php echo $_SESSION['user_id']; ?>';
+  const storageKey = 'profilePic_' + userId;
+  
+  if (!localStorage.getItem(storageKey)) return; // nothing to remove
+  
+  if (confirm('Remove your profile picture?')) {
+    localStorage.removeItem(storageKey);
+    const img = document.getElementById('profileAvatar');
+    const initials = document.getElementById('profileAvatarInitials');
+    img.src = '';
+    img.style.display = 'none';
+    initials.style.display = 'flex';
+  }
+});
+
+function filterByRoom(room) {
+  activeRoomFilter = room;
+  currentPage = 1;
+
+  // Sync the dropdown to match (or reset it)
+  const dropdown = document.getElementById('roomFilter');
+  if (dropdown) dropdown.value = room;
+
+  document.querySelectorAll('.room-filter-btn').forEach(btn => btn.classList.remove('active-room-filter'));
+  event.target.classList.add('active-room-filter');
+
+  filterAndSortInventoryData();
+  renderInventoryTable();
+}
 
 // ====== MODERN NOTIFICATION SYSTEM ======
 function showNotification(message, type = 'info', duration = 3000) {
@@ -395,74 +516,187 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
 let selectedReservation = null;
 let selectedReservationStatus = null;
 
+// My Reservations Pagination State
+let allMyReservations = [];
+let myResCurrentPage = 1;
+let myResPageSize = 10;
+
 function loadMyReservations() {
   // Reset selection when reloading
   selectedReservation = null;
   selectedReservationStatus = null;
   updateActionButtons(null);
-  
+
   fetch('get_reservations.php')
     .then(response => response.json())
     .then(reservations => {
-      const container = document.getElementById('teacherReservationsList');
-      
-      if (reservations.length === 0) {
-        container.innerHTML = '<p>No reservation requests found.</p>';
-        return;
-      }
-      
-      let html = `
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background: #f8f9fa;">
-              <th style="padding: 12px; border: 1px solid #ddd; width: 40px;">✎</th>
-              <th style="padding: 12px; border: 1px solid #ddd;">Item</th>
-              <th style="padding: 12px; border: 1px solid #ddd;">Date Needed</th>
-              <th style="padding: 12px; border: 1px solid #ddd;">Time Needed</th>
-              <th style="padding: 12px; border: 1px solid #ddd;">Purpose</th>
-              <th style="padding: 12px; border: 1px solid #ddd;">Status</th>
-              <th style="padding: 12px; border: 1px solid #ddd;">Submitted</th>
-            </tr>
-          </thead> 
-          <tbody>
-      `;
-      
-      reservations.forEach(reservation => {
-        const statusClass = `reservation-status status-${reservation.status}`;
-        const dateNeeded = new Date(reservation.date_needed).toLocaleDateString();
-        const timeNeeded = reservation.time_needed || 'Not specified';
-        const submitted = new Date(reservation.created_at).toLocaleDateString();
-        
-        // Determine if row is editable
-        const isEditable = ['pending', 'approved', 'borrowed'].includes(reservation.status);
-        
-        html += `
-          <tr class="${isEditable ? 'reservation-row-editable' : 'reservation-row-readonly'}" 
-              data-reservation-id="${reservation.id}"
-              data-reservation-status="${reservation.status}"
-              onclick="${isEditable ? `selectReservation(${reservation.id}, '${reservation.status}', this)` : ''}">
-            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-size: 16px;">
-              ${isEditable ? '✎' : ''}
-            </td>
-            <td style="padding: 12px; border: 1px solid #ddd;">${reservation.item_name}</td>
-            <td style="padding: 12px; border: 1px solid #ddd;">${dateNeeded}</td>
-            <td style="padding: 12px; border: 1px solid #ddd;">${timeNeeded}</td>
-            <td style="padding: 12px; border: 1px solid #ddd;">${reservation.purpose || 'N/A'}</td>
-            <td style="padding: 12px; border: 1px solid #ddd;">
-              <span class="${statusClass}">${reservation.status.toUpperCase()}</span>
-            </td>
-            <td style="padding: 12px; border: 1px solid #ddd;">${submitted}</td>
-          </tr>
-        `;
-      });
-      
-      html += '</tbody></table>';
-      container.innerHTML = html;
+      allMyReservations = Array.isArray(reservations) ? reservations : [];
+      myResCurrentPage = 1;
+      renderMyReservationsTable();
+      setupMyReservationsPagination();
     })
     .catch(error => {
       console.error('Error loading reservations:', error);
       document.getElementById('teacherReservationsList').innerHTML = '<p>Error loading reservations.</p>';
     });
+}
+
+function filterMyReservations(status) {
+  myResActiveFilter = status;
+  myResCurrentPage = 1;
+
+  // Reset selection
+  selectedReservation = null;
+  selectedReservationStatus = null;
+  updateActionButtons(null);
+
+  // Update active button style
+  document.querySelectorAll('.res-filter-btn').forEach(btn => {
+    btn.classList.remove('active-filter');
+  });
+  event.target.classList.add('active-filter');
+
+  renderMyReservationsTable();
+}
+
+function renderMyReservationsTable() {
+  const container = document.getElementById('teacherReservationsList');
+  const paginationContainer = document.getElementById('myReservationsPagination');
+
+  // Apply filter
+  const filtered = myResActiveFilter
+    ? allMyReservations.filter(r => r.status === myResActiveFilter)
+    : allMyReservations;
+
+  if (!filtered || filtered.length === 0) {
+    const label = myResActiveFilter || 'reservation';
+    container.innerHTML = `<p>No ${myResActiveFilter ? myResActiveFilter + ' ' : ''}reservation requests found.</p>`;
+    paginationContainer.style.display = 'none';
+    return;
+  }
+
+  paginationContainer.style.display = 'flex';
+
+  const totalPages = Math.ceil(filtered.length / myResPageSize);
+
+  // Clamp current page
+  if (myResCurrentPage > totalPages) myResCurrentPage = totalPages;
+
+  const startIndex = (myResCurrentPage - 1) * myResPageSize;
+  const endIndex = Math.min(startIndex + myResPageSize, filtered.length);
+  const pageData = filtered.slice(startIndex, endIndex);
+
+  let html = `
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #f8f9fa;">
+          <th style="padding: 12px; border: 1px solid #ddd; width: 40px;">✎</th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Item</th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Date Needed</th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Time Needed</th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Purpose</th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Status</th>
+          <th style="padding: 12px; border: 1px solid #ddd;">Submitted</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  pageData.forEach(reservation => {
+    const statusClass = `reservation-status status-${reservation.status}`;
+    const dateNeeded = new Date(reservation.date_needed).toLocaleDateString();
+    const timeNeeded = reservation.time_needed || 'Not specified';
+    const submitted = new Date(reservation.created_at).toLocaleDateString();
+    const isEditable = ['pending', 'approved', 'borrowed'].includes(reservation.status);
+
+    html += `
+      <tr class="${isEditable ? 'reservation-row-editable' : 'reservation-row-readonly'}"
+          data-reservation-id="${reservation.id}"
+          data-reservation-status="${reservation.status}"
+          onclick="${isEditable ? `selectReservation(${reservation.id}, '${reservation.status}', this)` : ''}">
+        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-size: 16px;">
+          ${isEditable ? '✎' : ''}
+        </td>
+        <td style="padding: 12px; border: 1px solid #ddd;">${reservation.item_name}</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">${dateNeeded}</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">${timeNeeded}</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">${reservation.purpose || 'N/A'}</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">
+          <span class="${statusClass}">${reservation.status.toUpperCase()}</span>
+        </td>
+        <td style="padding: 12px; border: 1px solid #ddd;">${submitted}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  updateMyReservationsPaginationInfo(filtered.length);
+  updateMyReservationsPaginationButtons(totalPages);
+}
+
+function updateMyReservationsPaginationInfo(totalCount) {
+  const info = document.getElementById('myReservationsPaginationInfo');
+  const total = totalCount ?? allMyReservations.length;
+  if (!total) { info.textContent = 'No records found'; return; }
+
+  const totalPages = Math.ceil(total / myResPageSize);
+  const start = (myResCurrentPage - 1) * myResPageSize + 1;
+  const end = Math.min(myResCurrentPage * myResPageSize, total);
+  info.textContent = `Showing ${start}–${end} of ${total} requests (Page ${myResCurrentPage} of ${totalPages})`;
+}
+
+function updateMyReservationsPaginationButtons(totalPages) {
+  const pageNumbers = document.getElementById('myResPageNumbers');
+  pageNumbers.innerHTML = '';
+
+  let startPage = Math.max(1, myResCurrentPage - 2);
+  let endPage = Math.min(totalPages, myResCurrentPage + 2);
+  if (myResCurrentPage <= 3) endPage = Math.min(5, totalPages);
+  if (myResCurrentPage >= totalPages - 2) startPage = Math.max(1, totalPages - 4);
+
+  for (let i = startPage; i <= endPage; i++) {
+    const btn = document.createElement('button');
+    btn.className = `page-number ${i === myResCurrentPage ? 'active' : ''}`;
+    btn.textContent = i;
+    btn.onclick = () => goToMyReservationsPage(i);
+    pageNumbers.appendChild(btn);
+  }
+
+  document.getElementById('myResFirstPage').disabled = myResCurrentPage === 1;
+  document.getElementById('myResPrevPage').disabled = myResCurrentPage === 1;
+  document.getElementById('myResNextPage').disabled = myResCurrentPage === totalPages;
+  document.getElementById('myResLastPage').disabled = myResCurrentPage === totalPages;
+}
+
+function setupMyReservationsPagination() {
+  document.getElementById('myResFirstPage').onclick = () => goToMyReservationsPage(1);
+  document.getElementById('myResPrevPage').onclick = () => goToMyReservationsPage(myResCurrentPage - 1);
+  document.getElementById('myResNextPage').onclick = () => goToMyReservationsPage(myResCurrentPage + 1);
+  document.getElementById('myResLastPage').onclick = () => goToMyReservationsPage(
+    Math.ceil(allMyReservations.length / myResPageSize)
+  );
+
+  document.getElementById('myResPageSize').onchange = (e) => {
+    myResPageSize = parseInt(e.target.value);
+    myResCurrentPage = 1;
+    renderMyReservationsTable();
+  };
+}
+
+function goToMyReservationsPage(page) {
+  const totalPages = Math.ceil(allMyReservations.length / myResPageSize);
+  if (page < 1 || page > totalPages) return;
+
+  // Reset row selection when changing pages
+  selectedReservation = null;
+  selectedReservationStatus = null;
+  updateActionButtons(null);
+
+  myResCurrentPage = page;
+  renderMyReservationsTable();
+  document.getElementById('teacherReservationsList').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Select/deselect a reservation row
@@ -671,6 +905,8 @@ let filteredInventoryData = [];
 let currentPage = 1;
 let pageSize = 10;
 let currentSortAsc = true;
+let myResActiveFilter = ''; // '' = All
+let activeRoomFilter = ''; // '' = All Rooms
 
 function loadInventory() {
   console.log('Loading inventory...');
@@ -729,16 +965,15 @@ function populateRoomFilter() {
 }
 
 function filterAndSortInventoryData() {
-  const roomVal = document.getElementById('roomFilter').value;
   const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
 
   filteredInventoryData = allInventoryData.filter(item => {
-    // Room match (if selected)
-    if (roomVal) {
-      const room = item.room || item.Room || '';
-      if (room.toString() !== roomVal) return false;
-    }
-    // search match
+    const room = (item.room || item.Room || '').toString();
+
+    // Room button filter takes priority; falls back to dropdown if no button active
+    if (activeRoomFilter && room !== activeRoomFilter) return false;
+
+    // Search match
     if (q) {
       const itemName = item.item || item.Item || '';
       const description = item.description || item.Description || '';
@@ -746,17 +981,16 @@ function filterAndSortInventoryData() {
       const searchText = (itemName + ' ' + description + ' ' + remarks).toLowerCase();
       if (!searchText.includes(q)) return false;
     }
+
     return true;
   });
 
-  // Sort by Item column alphabetically
   filteredInventoryData.sort((a, b) => {
     const itemA = (a.item || a.Item || '').toString().toLowerCase();
     const itemB = (b.item || b.Item || '').toString().toLowerCase();
     return currentSortAsc ? itemA.localeCompare(itemB) : itemB.localeCompare(itemA);
   });
 
-  // Reset to first page when filtering
   currentPage = 1;
 }
 
@@ -1446,6 +1680,30 @@ function updateRemoveButtons() {
     .status-approved { background: #d1ecf1; color: #0c5460; }
     .status-rejected { background: #f8d7da; color: #721c24; }
     
+/* ====== MY RESERVATIONS FILTER BUTTONS ====== */
+.res-filter-btn {
+  background: #242424;
+  color: #FFD600;
+  border: 2px solid #242424;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.res-filter-btn:hover {
+  background: #FFD600;
+  color: #242424;
+  border-color: #FFD600;
+}
+
+.res-filter-btn.active-filter {
+  background: #FFD600;
+  color: #1e1e1e;
+  border-color: #FFD600;
+}
 
 
 /* CSS for the status buttons on reservations */
@@ -1461,7 +1719,65 @@ function updateRemoveButtons() {
     margin-bottom: 20px; 
   }
 
+/* ====== PROFILE AVATAR ====== */
+.profile-avatar-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 3px solid #FFD600;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  background: #1e1e1e;
+}
 
+.profile-avatar-wrapper:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(255, 214, 0, 0.5);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: none; /* shown via JS when image loaded */
+}
+
+.profile-avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #FFD600;
+  background: #1e1e1e;
+  border-radius: 50%;
+  user-select: none;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 13px;
+  text-align: center;
+  padding: 3px 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.profile-avatar-wrapper:hover .profile-avatar-overlay {
+  opacity: 1;
+}
 
 /* ====== RESERVATION ROW STYLES ====== */
 .reservation-row-editable {

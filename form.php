@@ -25,15 +25,29 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
 
 
 <header>
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1 style="margin: 1%;">LabTrack - SHS Laboratory Inventory</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <!-- LEFT SIDE: logos + title -->
+    <div style="display: flex; align-items: left; gap: 5px;">
+      <img src="uploads/pcc.png" alt="PCC Logo" style="width: 52px; height: 52px; object-fit: contain;">
+      <img src="uploads/pccSHS.png" alt="PCC SHS Logo" style="width: 52px; height: 52px; object-fit: contain;">
+      <img src="uploads/stemlogo.png" alt="STEM Logo" style="width: 52px; height: 52px; object-fit: contain;">
+    </div>
+    <h1 style="font-size:30px;">LabTrack - SHS Laboratory Inventory</h1>
     <div style="display: flex; align-items: center; gap: 20px;">
-      <button id="layoutToggle" onclick="toggleLayout()">
-       Toggle View
-      </button>
-      <div id= "welcome" style="text-align: left;">
-        Welcome, <br> <?php echo $userName; ?>
-      </div>
+  <div id="welcome" style="text-align: right; font-size: 16px; line-height: 1.3;">
+    Welcome,<br><strong><?php echo $userName; ?></strong>
+  </div>
+
+  <!-- Profile Avatar -->
+  <div class="profile-avatar-wrapper" onclick="document.getElementById('profileUpload').click()" title="Click to change profile picture">
+    <img id="profileAvatar" src="" alt="Profile" class="profile-avatar-img">
+    <div id="profileAvatarInitials" class="profile-avatar-initials">
+      <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
+    </div>
+    <div class="profile-avatar-overlay" id="avatarOverlay">📷</div>
+    <input type="file" id="profileUpload" accept="image/*" style="display:none;" onchange="handleProfileUpload(event)">
+  </div>
+</div>
     </div>
   </div>
 </header>
@@ -60,10 +74,17 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
     <input type="text" id="searchInput" placeholder="Search equipment..." onkeyup="searchTable()">
   </div>
 
-  <button id="sortTable" onclick="sortTable()">Sort A–Z</button>
+
+  <div style="margin-top: 10px;">
+  <button id="sortTable" onclick="sortTable()">A–Z</button>
+  <button class="room-filter-btn active-room-filter" onclick="filterByRoom('')">All Rooms</button>
+  <button class="room-filter-btn" onclick="filterByRoom('Chemical Room')">Chemical Room</button>
+  <button class="room-filter-btn" onclick="filterByRoom('Laboratory 1')">Laboratory 1</button>
+  <button class="room-filter-btn" onclick="filterByRoom('Laboratory 2')">Laboratory 2</button>
+  <button class="room-filter-btn" onclick="filterByRoom('Storage Room')">Storage Room</button>
   <button id="addItemBtn" type="button">+ Add New Item</button>
   <button id="saveNewItemBtn" type="button" style="display:none;">Save New Item</button>
-
+  </div>
 
   <div class="table-container">
   <table id="inventoryTable">
@@ -191,6 +212,79 @@ function logout() {
   );
 }
 
+function filterByRoom(room) {
+  activeRoomFilter = room;
+  currentPage = 1;
+
+  const dropdown = document.getElementById('roomFilter');
+  if (dropdown) dropdown.value = room;
+
+  document.querySelectorAll('.room-filter-btn').forEach(btn => btn.classList.remove('active-room-filter'));
+  event.target.classList.add('active-room-filter');
+
+  filterAndSortData();
+  renderTable(); 
+}
+
+(function initProfileAvatar() {
+  // Key is per-user so different accounts don't share a picture
+  const userId = '<?php echo $_SESSION['user_id']; ?>';
+  const storageKey = 'profilePic_' + userId;
+
+  const img = document.getElementById('profileAvatar');
+  const initials = document.getElementById('profileAvatarInitials');
+  const saved = localStorage.getItem(storageKey);
+
+  if (saved) {
+    img.src = saved;
+    img.style.display = 'block';
+    initials.style.display = 'none';
+  }
+
+
+  
+  window.handleProfileUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 2MB limit
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image too large. Please choose an image under 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target.result;
+      localStorage.setItem(storageKey, dataUrl);
+      img.src = dataUrl;
+      img.style.display = 'block';
+      initials.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  };
+})();
+
+// Right-click to remove profile picture
+document.querySelector('.profile-avatar-wrapper').addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  
+  const userId = '<?php echo $_SESSION['user_id']; ?>';
+  const storageKey = 'profilePic_' + userId;
+  
+  if (!localStorage.getItem(storageKey)) return; // nothing to remove
+  
+  if (confirm('Remove your profile picture?')) {
+    localStorage.removeItem(storageKey);
+    const img = document.getElementById('profileAvatar');
+    const initials = document.getElementById('profileAvatarInitials');
+    img.src = '';
+    img.style.display = 'none';
+    initials.style.display = 'flex';
+  }
+}); 
+
+
 // Notification System
 function checkForPendingReservations() {
   fetch('get_pending_count.php')
@@ -233,6 +327,7 @@ let currentReservationsPage = 1;
 let reservationsPageSize = 10;
 let currentSortColumn = null;
 let currentSortDirection = 'asc'; // 'asc' or 'desc'
+let activeRoomFilter = ''; // '' = All Rooms
 
 // Enhanced reservation loading with sorting
 function loadAdminReservations(statusFilter = '') {

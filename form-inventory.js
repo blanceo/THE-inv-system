@@ -156,12 +156,17 @@ function filterAndSortData() {
   const q = (searchInput.value || '').toLowerCase().trim();
 
   filteredData = allData.filter(row => {
-    // Room match (if selected)
-    if (roomVal) {
-      const r = getProp(row, 'Room') || '';
-      if (r.toString() !== roomVal) return false;
+    const r = (getProp(row, 'Room') || '').toString();
+
+    // Button filter takes priority over dropdown
+    if (typeof activeRoomFilter !== 'undefined' && activeRoomFilter) {
+      if (r !== activeRoomFilter) return false;
+    } else if (roomVal) {
+      // Dropdown filter (only when no button filter active)
+      if (r !== roomVal) return false;
     }
-    // search match
+
+    // Search match
     if (q) {
       const text = [
         getProp(row, 'Item'),
@@ -182,7 +187,6 @@ function filterAndSortData() {
     return currentSortAsc ? A.localeCompare(B) : B.localeCompare(A);
   });
 
-  // Reset to first page when filtering
   currentPage = 1;
 }
 

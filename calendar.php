@@ -55,6 +55,67 @@ nav button:hover:not(.active-nav) {
   box-shadow: 0 4px 10px rgba(0,0,0,0.25);
 }
 
+/* ====== PROFILE AVATAR ====== */
+.profile-avatar-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 3px solid #FFD600;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+.profile-avatar-wrapper:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(255, 214, 0, 0.5);
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: none; /* shown via JS when image loaded */
+}
+
+.profile-avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #FFD600;
+  background: #1e1e1e;
+  border-radius: 50%;
+  user-select: none;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 13px;
+  text-align: center;
+  padding: 3px 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.profile-avatar-wrapper:hover .profile-avatar-overlay {
+  opacity: 1;
+}
+
+
 nav button:active {
   transform: translateY(1px);
 }
@@ -427,11 +488,28 @@ nav button:active {
 
 <header>
   <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1 style="margin: 1%;">LabTrack - Reservation Calendar</h1>
-    <div style="display: flex; align-items: center; gap: 20px; font-size:25px">
-      <div id= "welcome" style="text-align: left;">
-        Welcome, <?php echo $userName; ?>
-      </div>
+    <!-- LEFT SIDE: logos + title -->
+    <div style="display: flex; align-items: left; gap: 5px;">
+      <img src="uploads/pcc.png" alt="PCC Logo" style="width: 52px; height: 52px; object-fit: contain;">
+      <img src="uploads/pccSHS.png" alt="PCC SHS Logo" style="width: 52px; height: 52px; object-fit: contain;">
+      <img src="uploads/stemlogo.png" alt="STEM Logo" style="width: 52px; height: 52px; object-fit: contain;">
+    </div>
+    <h1 style="font-size:30px;">LabTrack - Reservation Calendar</h1>
+    <div style="display: flex; align-items: center; gap: 20px;">
+  <div id="welcome" style="text-align: right; font-size: 16px; line-height: 1.3;">
+    Welcome,<br><strong><?php echo $userName; ?></strong>
+  </div>
+
+  <!-- Profile Avatar -->
+  <div class="profile-avatar-wrapper" onclick="document.getElementById('profileUpload').click()" title="Click to change profile picture">
+    <img id="profileAvatar" src="" alt="Profile" class="profile-avatar-img">
+    <div id="profileAvatarInitials" class="profile-avatar-initials">
+      <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
+    </div>
+    <div class="profile-avatar-overlay">📷</div>
+    <input type="file" id="profileUpload" accept="image/*" style="display:none;" onchange="handleProfileUpload(event)">
+  </div>
+</div>
     </div>
   </div>
 </header>
@@ -504,6 +582,45 @@ nav button:active {
 let currentDate = new Date();
 let reservations = [];
 const isAdmin = <?php echo $isAdmin ? 'true' : 'false'; ?>;
+
+// ====== PROFILE AVATAR ======
+(function initProfileAvatar() {
+  // Key is per-user so different accounts don't share a picture
+  const userId = '<?php echo $_SESSION['user_id']; ?>';
+  const storageKey = 'profilePic_' + userId;
+
+  const img = document.getElementById('profileAvatar');
+  const initials = document.getElementById('profileAvatarInitials');
+  const saved = localStorage.getItem(storageKey);
+
+  if (saved) {
+    img.src = saved;
+    img.style.display = 'block';
+    initials.style.display = 'none';
+  }
+
+  window.handleProfileUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 2MB limit
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image too large. Please choose an image under 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target.result;
+      localStorage.setItem(storageKey, dataUrl);
+      img.src = dataUrl;
+      img.style.display = 'block';
+      initials.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  };
+})();
+
 
 
 function loadReservations() {
