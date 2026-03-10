@@ -12,11 +12,16 @@ require_once 'check_session.php';
 <body>
 
 <header>
-  <h1>LabTrack - Teacher Dashboard</h1>
-  <div style="float: center;">
-    Welcome, <?php echo $_SESSION['full_name']; ?>  
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1 style="margin: 1%;">LabTrack - Teacher's Dashboard</h1>
+    <div style="display: flex; align-items: center; gap: 20px; font-size:25px">
+      <div id= "welcome" style="text-align: left;">
+        Welcome, <?php echo $_SESSION['full_name']; ?> 
+      </div>
+    </div>
   </div>
 </header>
+
 
 <div id="app">
   <nav>

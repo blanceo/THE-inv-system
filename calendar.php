@@ -426,11 +426,16 @@ nav button:active {
 <body>
 
 <header>
-  <h1>LabTrack - Reservation Calendar</h1>
-  <div class="profname" style="float: center;">
-    Welcome, <?php echo $userName; ?>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1 style="margin: 1%;">LabTrack - Reservation Calendar</h1>
+    <div style="display: flex; align-items: center; gap: 20px; font-size:25px">
+      <div id= "welcome" style="text-align: left;">
+        Welcome, <?php echo $userName; ?>
+      </div>
+    </div>
   </div>
 </header>
+
 
 <div id="app">
   <?php if ($isAdmin): ?>

@@ -219,13 +219,11 @@ function checkForPendingReservations() {
     });
 }
 
-// Periodically check for new pending reservations
+// this is the initial check for the notifications
 function startNotificationPolling() {
   // Check immediately
   checkForPendingReservations();
   
-  // Then check every 30 seconds
-  setInterval(checkForPendingReservations, 30000);
 }
 
 // Reservation Requests Pagination and Sorting
@@ -624,9 +622,7 @@ function connectSSE() {
         const data = JSON.parse(e.data);
         console.log('🎯 New reservation detected!', data);
         
-        // Play a subtle sound? (optional)
-        // new Audio('notification.mp3').play();
-        
+       
         // Show prominent notification
         showNotification('🚨 ' + data.message, 'success', 1000);
         
@@ -661,12 +657,15 @@ function connectSSE() {
     });
 }
 
-
+let refreshInterval = null; // declare it properly
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    if (sseSource) sseSource.close();
 });
+
+// START THE SSE CONNECTION
+connectSSE();
 
 </script>
 
