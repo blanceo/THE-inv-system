@@ -154,12 +154,6 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
   <!-- Popup Message -->
   <div id="reservePopup" class="popup"></div>
 
-  <!-- List of Reserved Items -->
-  <div id="reservedListContainer">
-    <h3>Reserved Items</h3>
-    <ul id="reservedList"></ul>
-  </div>
-</section>
 
 
 </div>
@@ -610,6 +604,69 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ====== INSTANT SSE CONNECTION ======
+let sseSource = null;
+let reconnectAttempts = 0;
+
+function connectSSE() {
+    if (sseSource) {
+        sseSource.close();
+    }
+    
+    sseSource = new EventSource('sse.php');
+    
+    sseSource.addEventListener('connected', function(e) {
+        console.log('📡 Connected to instant updates');
+        reconnectAttempts = 0; // Reset reconnect counter
+    });
+    
+    sseSource.addEventListener('newReservation', function(e) {
+        const data = JSON.parse(e.data);
+        console.log('🎯 New reservation detected!', data);
+        
+        // Play a subtle sound? (optional)
+        // new Audio('notification.mp3').play();
+        
+        // Show prominent notification
+        showNotification('🚨 ' + data.message, 'success', 1000);
+        
+        // Update badge with bounce animation
+        const badge = document.getElementById('reservationNotification');
+        badge.textContent = data.total > 99 ? '99+' : data.total;
+        badge.style.display = data.total > 0 ? 'flex' : 'none';
+        
+        // Add bounce animation
+        badge.classList.add('bounce');
+        setTimeout(() => badge.classList.remove('bounce'), 1000);
+        
+        // If viewing reservations, refresh immediately
+        if (document.getElementById('reservationRequests').classList.contains('active')) {
+            const filter = document.getElementById('statusFilter').value;
+            loadAdminReservations(filter);
+        }
+    });
+    
+    sseSource.addEventListener('error', function(e) {
+        console.log('SSE connection error');
+        sseSource.close();
+        
+        // Exponential backoff for reconnection
+        reconnectAttempts++;
+        const delay = Math.min(30000, Math.pow(2, reconnectAttempts) * 1000);
+        
+        setTimeout(() => {
+            console.log(`Reconnecting... (attempt ${reconnectAttempts})`);
+            connectSSE();
+        }, delay);
+    });
+}
+
+
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+    if (refreshInterval) clearInterval(refreshInterval);
+});
 
 </script>
 

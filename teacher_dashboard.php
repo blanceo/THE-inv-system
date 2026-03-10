@@ -52,7 +52,7 @@ require_once 'check_session.php';
 <button 
   type="button" 
   id="addItemBtn" 
-  onclick="addItemInput() 
+  onclick="addItemInput(); 
   loadInventoryForAutocomplete();
   initializeAllAutocomplete();
   highlightMatch(text, query);
@@ -78,7 +78,6 @@ require_once 'check_session.php';
         name="time_needed" 
         required style="padding: 8px;">
         
-      
       <br><br>
       
       <label><strong>Purpose/Activity:</strong></label>
@@ -1360,71 +1359,6 @@ function updateRemoveButtons() {
 }
 
 
-// ====== CALENDAR POPUP ======
-
-// Function to open calendar event details popup
-function openCalendarPopup(event) {
-  const modal = document.createElement('div');
-  modal.className = 'calendar-modal';
-  modal.id = 'calendarModal';
-  
-  modal.innerHTML = `
-    <div class="calendar-modal-content">
-      <div class="calendar-modal-header">
-        <h3>📅 Reservation Details</h3>
-        <button class="calendar-modal-close" onclick="closeCalendarPopup()">×</button>
-      </div>
-      <div class="calendar-modal-body">
-        <div class="calendar-detail-row">
-          <span class="calendar-detail-label">Item:</span>
-          <span class="calendar-detail-value">${escapeHtml(event.item_name)}</span>
-        </div>
-        <div class="calendar-detail-row">
-          <span class="calendar-detail-label">Teacher:</span>
-          <span class="calendar-detail-value">${escapeHtml(event.teacher_name)}</span>
-        </div>
-        <div class="calendar-detail-row">
-          <span class="calendar-detail-label">Date:</span>
-          <span class="calendar-detail-value">${new Date(event.date_needed).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-        </div>
-        <div class="calendar-detail-row">
-          <span class="calendar-detail-label">Purpose:</span>
-          <span class="calendar-detail-value">${escapeHtml(event.purpose || 'N/A')}</span>
-        </div>
-        <div class="calendar-detail-row">
-          <span class="calendar-detail-label">Status:</span>
-          <span class="calendar-detail-value">
-            <span class="status-badge status-${event.status}">${event.status.toUpperCase()}</span>
-          </span>
-        </div>
-        <div class="calendar-detail-row">
-          <span class="calendar-detail-label">Submitted:</span>
-          <span class="calendar-detail-value">${new Date(event.created_at).toLocaleDateString()}</span>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  // Show modal with animation
-  setTimeout(() => modal.classList.add('show'), 10);
-  
-  // Close on backdrop click
-  modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-      closeCalendarPopup();
-    }
-  });
-}
-
-function closeCalendarPopup() {
-  const modal = document.getElementById('calendarModal');
-  if (modal) {
-    modal.classList.remove('show');
-    setTimeout(() => modal.remove(), 300);
-  }
-}
 
 // ====== INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', function() {
@@ -1452,7 +1386,16 @@ function addItemInput() {
         placeholder="Enter equipment name" 
         required 
         style="flex: 1; padding: 8px;">
-      <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="background: #dc3545; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+      <button type="button" 
+      class="remove-item-btn" 
+      onclick="removeItemInput(this)" 
+      style="background: #dc3545; 
+      color: white; 
+      padding: 8px 12px; 
+      border: none; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-weight: bold;">
         ✕
       </button>
     </div>
