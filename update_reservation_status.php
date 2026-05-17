@@ -1,117 +1,94 @@
 <?php
-session_start();
-include('config/db_connect.php');
+require_once 'config/db_connect.php';
+require_once 'check_session.php';
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $reservation_id = $_POST['reservation_id'] ?? 0;
-    $status = $_POST['status'] ?? '';
-    $user_type = $_SESSION['user_type'] ?? '';
-    $user_id = $_SESSION['user_id'] ?? 0;
-    
-    // Validate inputs
-    if (empty($reservation_id) || empty($status)) {
-        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
-        exit;
-    }
-    
-    // Check if user is logged in
-    if (empty($user_type) || empty($user_id)) {
-        echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-        exit;
-    }
-    
-    try {
-        // Get current reservation details
-        $check_stmt = $conn->prepare("SELECT teacher_id, status FROM reservations WHERE id = ?");
-        $check_stmt->bind_param("i", $reservation_id);
-        $check_stmt->execute();
-        $result = $check_stmt->get_result();
-        
-        if ($result->num_rows === 0) {
-            echo json_encode(['success' => false, 'message' => 'Reservation not found']);
-            exit;
-        }
-        
-        $reservation = $result->fetch_assoc();
-        $current_status = $reservation['status'];
-        $teacher_id = $reservation['teacher_id'];
-        
-        // ADMIN ACTIONS (approved/rejected)
-        if ($user_type === 'admin') {
-            // Admin can approve or reject pending reservations
-            if (!in_array($status, ['approved', 'rejected'])) {
-                echo json_encode(['success' => false, 'message' => 'Invalid admin action']);
-                exit;
-            }
-            
-            $stmt = $conn->prepare("UPDATE reservations SET status = ?, approved_at = NOW(), approved_by = ? WHERE id = ?");
-            $stmt->bind_param("sii", $status, $user_id, $reservation_id);
-            
-            if ($stmt->execute()) {
-                echo json_encode(['success' => true, 'message' => "Reservation {$status}!"]);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to update reservation']);
-            }
-            
-            $stmt->close();
-        } 
-        // TEACHER ACTIONS (cancelled/borrowed/returned)
-        else {
-            // Verify this reservation belongs to the logged-in teacher
-            if ($teacher_id != $user_id) {
-                echo json_encode(['success' => false, 'message' => 'Access denied - not your reservation']);
-                exit;
-            }
-            
-            // Validate allowed status transitions for teachers
-            $allowed_statuses = ['cancelled', 'borrowed', 'returned'];
-            if (!in_array($status, $allowed_statuses)) {
-                echo json_encode(['success' => false, 'message' => 'Invalid status']);
-                exit;
-            }
-            
-            // Validate status transitions
-            if ($status === 'cancelled' && $current_status !== 'pending') {
-                echo json_encode(['success' => false, 'message' => 'Only pending reservations can be cancelled']);
-                exit;
-            }
-            
-            if ($status === 'borrowed' && $current_status !== 'approved') {
-                echo json_encode(['success' => false, 'message' => 'Only approved reservations can be marked as borrowed']);
-                exit;
-            }
-            
-            if ($status === 'returned' && $current_status !== 'borrowed') {
-                echo json_encode(['success' => false, 'message' => 'Only borrowed items can be marked as returned']);
-                exit;
-            }
-            
-            // Update the status
-            $update_stmt = $conn->prepare("UPDATE reservations SET status = ? WHERE id = ? AND teacher_id = ?");
-            $update_stmt->bind_param("sii", $status, $reservation_id, $teacher_id);
-            
-            if ($update_stmt->execute()) {
-                echo json_encode([
-                    'success' => true, 
-                    'message' => 'Status updated to ' . ucfirst($status) . ' successfully!'
-                ]);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to update status']);
-            }
-            
-            $update_stmt->close();
-        }
-        
-        $check_stmt->close();
-        
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-    }
-    
-    $conn->close();
-} else {
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+$reservation_id = $_POST['reservation_id'] ?? null;
+$status         = $_POST['status']         ?? null;
+
+if (!$reservation_id || !$status) {
+    echo json_encode(['success' => false, 'message' => 'Missing parameters']);
+    exit;
 }
+
+$allowed_statuses = ['approved', 'rejected', 'cancelled', 'borrowed', 'returned'];
+if (!in_array($status, $allowed_statuses)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid status']);
+    exit;
+}
+
+// Fetch the reservation so we know the item name and current status
+$fetch = $conn->prepare("SELECT item_name, status FROM reservations WHERE id = ?");
+$fetch->bind_param("i", $reservation_id);
+$fetch->execute();
+$result = $fetch->get_result();
+$reservation = $result->fetch_assoc();
+$fetch->close();
+
+if (!$reservation) {
+    echo json_encode(['success' => false, 'message' => 'Reservation not found']);
+    exit;
+}
+
+$item_name      = $reservation['item_name'];
+$current_status = $reservation['status'];
+
+// Update reservation status
+$upd = $conn->prepare("UPDATE reservations SET status = ? WHERE id = ?");
+$upd->bind_param("si", $status, $reservation_id);
+
+if (!$upd->execute()) {
+    echo json_encode(['success' => false, 'message' => 'Failed to update status']);
+    $upd->close();
+    $conn->close();
+    exit;
+}
+$upd->close();
+
+// ---------------------------------------------------------------
+// Decrement inventory request_count when a reservation is resolved
+// (approved OR rejected — the pending request is now settled)
+// Only decrement if the reservation was previously 'pending'
+// (avoid double-decrement if e.g. borrowed→returned)
+// ---------------------------------------------------------------
+$resolving_statuses = ['approved', 'rejected'];
+
+if (in_array($status, $resolving_statuses) && $current_status === 'pending') {
+    // Decrement request_count, floor at 0
+    $dec = $conn->prepare(
+        "UPDATE inventory
+         SET request_count = GREATEST(0, request_count - 1)
+         WHERE LOWER(TRIM(item)) = LOWER(TRIM(?))"
+    );
+    $dec->bind_param("s", $item_name);
+    $dec->execute();
+    $dec->close();
+
+    // If request_count is now 0, clear is_requested flag
+    $clr = $conn->prepare(
+        "UPDATE inventory
+         SET is_requested = 0
+         WHERE LOWER(TRIM(item)) = LOWER(TRIM(?))
+           AND request_count = 0"
+    );
+    $clr->bind_param("s", $item_name);
+    $clr->execute();
+    $clr->close();
+}
+
+$conn->close();
+
+$messages = [
+    'approved'  => 'Reservation approved successfully!',
+    'rejected'  => 'Reservation rejected.',
+    'cancelled' => 'Reservation cancelled.',
+    'borrowed'  => 'Item marked as borrowed.',
+    'returned'  => 'Item marked as returned.',
+];
+
+echo json_encode([
+    'success' => true,
+    'message' => $messages[$status] ?? 'Status updated.'
+]);
 ?>

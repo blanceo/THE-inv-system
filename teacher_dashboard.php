@@ -93,14 +93,30 @@ require_once 'check_session.php';
       
       <br><br>
 
-            <label><strong>Time Needed:</strong></label>
-      <input 
-        type="time" 
-        id="reserveTime" 
-        name="time_needed" 
-        required style="padding: 8px;">
-        
-      <br><br>
+      <label><strong>Time Needed:</strong></label>
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <span style="font-size: 12px; color: #666; font-weight: bold;">FROM</span>
+    <input 
+      type="time" 
+      id="reserveTime" 
+      name="time_needed" 
+      required 
+      style="padding: 8px;">
+  </div>
+  <div style="font-size: 20px; color: #999; margin-top: 18px;">→</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <span style="font-size: 12px; color: #666; font-weight: bold;">UNTIL</span>
+    <input 
+      type="time" 
+      id="reserveTimeEnd" 
+      name="time_needed_end" 
+      required 
+      style="padding: 8px;">
+  </div>
+</div>
+
+<br><br>
       
       <label><strong>Purpose/Activity:</strong></label>
       <input 
@@ -426,22 +442,24 @@ function logout() {
   );
 }
 
-// Reservation System - Updated to handle multiple items
 document.getElementById('reservationForm').addEventListener('submit', function(e) {
   e.preventDefault();
   
-  const submitBtn = document.getElementById('reserveBtn');
-  const itemInputs = document.querySelectorAll('.item-name-input');
-  const dateNeeded = document.getElementById('reserveDate').value;
-  const purpose = document.getElementById('reservePurpose').value;
-  const timeNeeded = document.getElementById('reserveTime').value;
-
+  const submitBtn   = document.getElementById('reserveBtn');
+  const itemInputs  = document.querySelectorAll('.item-name-input');
+  const dateNeeded  = document.getElementById('reserveDate').value;
+  const purpose     = document.getElementById('reservePurpose').value;
+  const timeNeeded  = document.getElementById('reserveTime').value;
   
-  // Collect all item names
-  const itemNames = [];
+  // Collect item names AND their autocomplete flags
+  const itemNames       = [];
+  const fromAutocomplete = [];
+ 
   itemInputs.forEach(input => {
     if (input.value.trim()) {
       itemNames.push(input.value.trim());
+      // true only if the user selected from the dropdown suggestion
+      fromAutocomplete.push(input.dataset.fromAutocomplete === 'true');
     }
   });
   
@@ -456,61 +474,72 @@ document.getElementById('reservationForm').addEventListener('submit', function(e
   }
   
   submitBtn.textContent = 'Submitting...';
-  submitBtn.disabled = true;
+  submitBtn.disabled    = true;
   
-  // Prepare data for multiple items
   const formData = new FormData();
-  formData.append('item_names', JSON.stringify(itemNames));
-  formData.append('date_needed', dateNeeded);
-  formData.append('time_needed', timeNeeded);
-  formData.append('purpose', purpose);
+  formData.append('item_names',       JSON.stringify(itemNames));
+  formData.append('from_autocomplete', JSON.stringify(fromAutocomplete)); // NEW
+  formData.append('date_needed',      dateNeeded);
+  formData.append('time_needed',      timeNeeded);
+  formData.append('purpose',          purpose);
   
-  fetch('submit_reservation.php', {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      showNotification(data.message, 'success');
-      
-      // Reset form
-      this.reset();
-      
-      // Reset to single item input
-      const itemsContainer = document.getElementById('itemsContainer');
-      itemsContainer.innerHTML = `
-        <div class="item-input-group">
-          <label><strong>Item Name:</strong></label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input 
-              type="text" 
-              class="item-name-input" 
-              name="item_names[]" 
-              placeholder="Enter equipment name" 
-              required 
-              style="flex: 1; padding: 8px;">
-            <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="display: none;">
-              ✕
-            </button>
+  fetch('submit_reservation.php', { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showNotification(data.message, 'success');
+        
+        // Reset form
+        this.reset();
+        
+        // Reset to single item input
+        const itemsContainer = document.getElementById('itemsContainer');
+        itemsContainer.innerHTML = `
+          <div class="item-input-group">
+            <label><strong>Item Name:</strong></label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input 
+                type="text" 
+                class="item-name-input" 
+                name="item_names[]" 
+                placeholder="Enter equipment name" 
+                required 
+                style="flex: 1; padding: 8px;">
+              <button type="button" class="remove-item-btn" onclick="removeItemInput(this)" style="display: none;">
+                ✕
+              </button>
+            </div>
           </div>
-        </div>
-      `;
-      itemInputCount = 1;
-      
-      loadMyReservations();
-    } else {
-      showNotification(data.message, 'error');
-    }
-    submitBtn.textContent = 'Submit Reservation Request';
-    submitBtn.disabled = false;
-  })
-  .catch(error => {
-    showNotification('Error submitting reservation', 'error');
-    submitBtn.textContent = 'Submit Reservation Request';
-    submitBtn.disabled = false;
-  });
+        `;
+        itemInputCount = 1;
+        // Re-attach autocomplete to the fresh input
+        const freshInput = itemsContainer.querySelector('.item-name-input');
+        if (freshInput) attachAutocompleteToInput(freshInput);
+ 
+        loadMyReservations();
+      } else {
+        showNotification(data.message, 'error');
+      }
+      submitBtn.textContent = 'Submit Reservation Request';
+      submitBtn.disabled    = false;
+    })
+    .catch(error => {
+      showNotification('Error submitting reservation', 'error');
+      submitBtn.textContent = 'Submit Reservation Request';
+      submitBtn.disabled    = false;
+    });
 });
+
+
+function to12Hour(timeStr) {
+  if (!timeStr || timeStr === 'Not specified') return timeStr;
+  const [hourStr, minuteStr] = timeStr.split(':');
+  let hour = parseInt(hourStr);
+  const minute = minuteStr || '00';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${minute} ${ampm}`;
+}
 
 // Track selected reservation
 let selectedReservation = null;
@@ -605,7 +634,11 @@ function renderMyReservationsTable() {
   pageData.forEach(reservation => {
     const statusClass = `reservation-status status-${reservation.status}`;
     const dateNeeded = new Date(reservation.date_needed).toLocaleDateString();
-    const timeNeeded = reservation.time_needed || 'Not specified';
+    const timeStart = reservation.time_needed ? to12Hour(reservation.time_needed) : null;
+    const timeEnd = reservation.time_needed_end ? to12Hour(reservation.time_needed_end) : null;
+    const timeNeeded = timeStart 
+  ? (timeEnd ? `${timeStart} – ${timeEnd}` : timeStart)
+  : 'Not specified';
     const submitted = new Date(reservation.created_at).toLocaleDateString();
     const isEditable = ['pending', 'approved', 'borrowed'].includes(reservation.status);
 
@@ -1436,7 +1469,9 @@ function attachAutocompleteToInput(input) {
 
   // Listen for input changes
   input.addEventListener('input', function() {
+    input.dataset.fromAutocomplete = 'false';
     const value = this.value.toLowerCase().trim();
+    
     
     // Clear suggestions if input is empty
     if (!value) {
@@ -1471,6 +1506,7 @@ function attachAutocompleteToInput(input) {
       suggestionsContainer.querySelectorAll('.autocomplete-item').forEach(suggestionEl => {
         suggestionEl.addEventListener('click', function() {
           input.value = this.getAttribute('data-name');
+          input.dataset.fromAutocomplete = 'true';
           suggestionsContainer.innerHTML = '';
           suggestionsContainer.style.display = 'none';
           input.focus();

@@ -300,14 +300,14 @@ header {
   background: #242424;
   color: #FFD600;
   border: 2px solid #242424;
-  padding: 10px 20px;
+  padding: 11px 20px;
   border-radius: 30px;
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-right: 6px;
-  margin-top: 6px;
+  margin-top: 0px;
 }
 
 .room-filter-btn:hover {
@@ -684,6 +684,8 @@ select.inline-input:focus {
   font-weight: bold;
   transition: all 0.3s ease;
   display: none; /* Start hidden */
+  vertical-align: middle; /* ADD THIS */
+  display: inline-block;
 }
 
 #saveNewItemBtn:hover {
@@ -693,6 +695,22 @@ select.inline-input:focus {
   box-shadow: 0 0 10px #fac517;
 }
 
+#addItemBtn {
+  background: #FFD600 !important;
+  color: #242424 !important;
+  border: 2px solid #212121;
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  display: none; /* Start hidden */
+  vertical-align: middle; /* ADD THIS */
+  display: inline-block;
+
+}
 
 /* ====== DELETE BUTTON STYLING ====== */
 .delete-row-btn {
@@ -1928,4 +1946,125 @@ header, nav, #app {
   transform: scale(0.9);
   background: #FFD600;
   
+}
+
+/* ============================================================
+   PASTE THESE STYLES INTO form.css
+   (Add at the very end of the file)
+   ============================================================ */
+
+/* ====== REQUESTED ITEM ROW — pulsing orange highlight ====== */
+@keyframes requestedPulse {
+  0%   { background-color: rgba(255, 255, 255, 1); }
+  50%  { background-color: rgba(255, 124, 30, 0.13); }
+  100% { background-color: rgba(255, 255, 255, 1); }
+}
+
+#inventoryTable tbody tr.requested-row {
+  outline: 2px solid #ff7c1e;
+  outline-offset: -2px;
+  animation: requestedPulse 2.4s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+/* Keep the pulse visible even when hovered */
+#inventoryTable tbody tr.requested-row:hover {
+  animation: requestedPulse 2.4s ease-in-out infinite;
+  background-color: rgba(255, 124, 30, 0.1) !important;
+}
+
+/* Keep orange outline on selected requested row too */
+#inventoryTable tbody tr.requested-row.selected-row {
+  outline: 2px solid #ff7c1e;
+  animation: requestedPulse 2.4s ease-in-out infinite;
+}
+
+/* ====== REQUEST COUNT BADGE (inside item cell) ====== */
+.request-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: linear-gradient(135deg, #ff7c1e, #ff4500);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 10px;
+  margin-left: 4px;
+  margin-right: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(255, 124, 30, 0.45);
+  animation: badgePop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  vertical-align: middle;
+  cursor: default;
+  letter-spacing: 0;
+}
+
+@keyframes badgePop {
+  0%   { transform: scale(0); opacity: 0; }
+  80%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ====== REQUESTED FILTER BUTTON — wrapper for badge ====== */
+.requested-filter-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-right: 6px;
+  margin-top: 6px;
+}
+
+/* The button itself reuses .room-filter-btn but with orange accent */
+.requested-filter-btn {
+  background: #242424;
+  color: #ff7c1e;
+  border: 2px solid #ff7c1e;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  margin-right: 6px;
+  margin-top: 0px;
+}
+
+.requested-filter-btn:hover {
+  background: #ff7c1e;
+  color: #ffffff;
+  border-color: #ff7c1e;
+  box-shadow: 0 0 12px rgba(255, 124, 30, 0.5);
+}
+
+.requested-filter-btn.active-room-filter {
+  background: #ff7c1e;
+  color: #ffffff;
+  border-color: #ff7c1e;
+  box-shadow: 0 0 12px rgba(255, 124, 30, 0.5);
+}
+
+/* ====== REQUESTED BUTTON BADGE (on the filter button itself) ====== */
+#requestedFilterBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #d70c0c;
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  animation: pulse 2s infinite;
+  /* reuses the existing @keyframes pulse from the nav badge */
 }

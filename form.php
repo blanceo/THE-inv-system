@@ -75,16 +75,31 @@ echo "<!-- DEBUG: User ID: " . $_SESSION['user_id'] . " -->";
   </div>
 
 
-  <div style="margin-top: 10px;">
+<div style="margin-top: 0px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;">
   <button id="sortTable" onclick="sortTable()">A–Z</button>
-  <button class="room-filter-btn active-room-filter" onclick="filterByRoom('')">All Rooms</button>
-  <button class="room-filter-btn" onclick="filterByRoom('Chemical Room')">Chemical Room</button>
-  <button class="room-filter-btn" onclick="filterByRoom('Laboratory 1')">Laboratory 1</button>
-  <button class="room-filter-btn" onclick="filterByRoom('Laboratory 2')">Laboratory 2</button>
-  <button class="room-filter-btn" onclick="filterByRoom('Storage Room')">Storage Room</button>
-  <button id="addItemBtn" type="button">+ Add New Item</button>
+
+  <!-- Room filter buttons (unchanged) -->
+  <button class="room-filter-btn active-room-filter" data-room="" onclick="filterByRoom('')">All Rooms</button>
+  <button class="room-filter-btn" data-room="Chemical Room"  onclick="filterByRoom('Chemical Room')">Chemical Room</button>
+  <button class="room-filter-btn" data-room="Laboratory 1"   onclick="filterByRoom('Laboratory 1')">Laboratory 1</button>
+  <button class="room-filter-btn" data-room="Laboratory 2"   onclick="filterByRoom('Laboratory 2')">Laboratory 2</button>
+  <button class="room-filter-btn" data-room="Storage Room"   onclick="filterByRoom('Storage Room')">Storage Room</button>
+
+  <!-- NEW: Requested filter button with live badge -->
+    <button id="requestedFilterBtn"
+            class="requested-filter-btn"
+            onclick="filterByRequested(this)">
+      🔔 Requested
+    </button>
+    <!-- Badge: count of inventory items with is_requested = 1 -->
+    <span id="requestedFilterBadge" style="display:none;">0</span>
+  
+
+  <button id="addItemBtn"    type="button">+ Add New Item</button>
   <button id="saveNewItemBtn" type="button" style="display:none;">Save New Item</button>
-  </div>
+</div>
+
+  
 
   <div class="table-container">
   <table id="inventoryTable">
@@ -284,6 +299,15 @@ document.querySelector('.profile-avatar-wrapper').addEventListener('contextmenu'
   }
 }); 
 
+function to12Hour(timeStr) {
+  if (!timeStr || timeStr === 'Not specified') return timeStr;
+  const [hourStr, minuteStr] = timeStr.split(':');
+  let hour = parseInt(hourStr);
+  const minute = minuteStr || '00';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${minute} ${ampm}`;
+}
 
 // Notification System
 function checkForPendingReservations() {
@@ -468,7 +492,11 @@ function renderReservationsTable() {
   pageData.forEach(reservation => {
     const statusClass = `reservation-status status-${reservation.status}`;
     const dateNeeded = new Date(reservation.date_needed).toLocaleDateString();
-    const timeNeeded = reservation.time_needed || 'Not specified';
+    const timeStart = reservation.time_needed ? to12Hour(reservation.time_needed) : null;
+    const timeEnd = reservation.time_needed_end ? to12Hour(reservation.time_needed_end) : null;
+    const timeNeeded = timeStart
+  ? (timeEnd ? `${timeStart} – ${timeEnd}` : timeStart)
+  : 'Not specified';
     const submitted = new Date(reservation.created_at).toLocaleDateString();
     
     html += `

@@ -764,7 +764,7 @@ dayReservations.forEach(reservation => {
         <div>
           <div class="item-name">${reservation.item_name}</div>
           <div class="teacher-name">👤 ${reservation.teacher_name}</div>
-          ${reservation.time_needed ? `<div class="item-time">🕒 ${reservation.time_needed}</div>` : ''}
+          ${reservation.time_needed ? `<div class="item-time">🕒 ${to12Hour(reservation.time_needed)}${reservation.time_needed_end ? ` – ${to12Hour(reservation.time_needed_end)}` : ''}</div>` : ''}
           ${reservation.purpose ? `<div class="item-purpose">📝 ${reservation.purpose}</div>` : ''}
         </div>
         ${isAdmin ? `
@@ -782,6 +782,16 @@ dayReservations.forEach(reservation => {
 
   modalBody.innerHTML = html;
   modal.classList.add('show');
+}
+
+function to12Hour(timeStr) {
+  if (!timeStr || timeStr === 'Not specified') return timeStr;
+  const [hourStr, minuteStr] = timeStr.split(':');
+  let hour = parseInt(hourStr);
+  const minute = minuteStr || '00';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${minute} ${ampm}`;
 }
 
 function logout() {
